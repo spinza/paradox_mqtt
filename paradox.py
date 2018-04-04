@@ -138,8 +138,6 @@ class Paradox():
             return None
 
     def mqtt_message(self, client, userdata, message):
-        logger.info(
-            "message received: {}".format(str(message.payload.decode("utf-8"))))
         logger.info("message topic={}, message={}".format(
             message.topic, str(message.payload.decode("utf-8"))))
         topics = message.topic.split("/")
