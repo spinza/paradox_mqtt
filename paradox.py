@@ -968,7 +968,8 @@ class Paradox():
         elif high_nibble == 14:  #Live Event command, not sure about 15
             self.process_live_event_command(message)
         else:
-            logger.error("Couldn't process message: {}".format(message))
+            logger.error("Could not process message: {} (high_nibble={:d})".
+                         format(message, high_nibble))
             self.connection.reset_input_buffer()
 
     def send_message(self, message):
