@@ -166,8 +166,7 @@ class Paradox():
                                  format(str(message.payload.decode("utf-8"))))
                     return
                 for z in matching_zones:
-                    logger.info("Set zone {} bypass status {}.".format(
-                        z['label'], str(message.payload.decode("utf-8"))))
+                    self.bypass_zone(zone_number=z['number'])
             else:
                 logger.error("Invalid zone property set in topic {}.".format(
                     message.topic))
@@ -567,6 +566,15 @@ class Paradox():
                 self.publish_zone_property(zone_number, property)
                 self.publish_zone_event(zone_number, property)
 
+    def toggle_zone_property(self, zone_number, property="open"):
+        if zone_number > self.zones or zone_number < 1:
+            logger.error("Invalid zone_number {:d}".format(zone_number))
+            return
+        self.update_zone_property(
+            zone_number=zone_number,
+            property=property,
+            flag=not self.zone_data[zone_number][property])
+
     def update_zone_label(self, zone_number, label=None):
         if zone_number > self.zones or zone_number < 1:
             logger.error("Invalid zone_number {:d}".format(zone_number))
@@ -728,7 +736,13 @@ class Paradox():
                         partition_number=partition_number,
                         property='arm_stay',
                         flag=arm_stay)
-            elif seq > 1 and seq < 7:
+            elif seq == 2:
+                #Zone Bypass Status
+                for i in range(0, self.zones - 1):
+                    bypass = test_bit(message[4 + i], 3)
+                    self.update_zone_property(
+                        zone_number=i + 1, property='bypass', flag=bypass)
+            elif seq > 2 and seq < 7:
                 pass  #What do these do?
             else:
                 logger.error("Invalid sequence {:d} on keep alive.".format(seq))
@@ -888,8 +902,7 @@ class Paradox():
                     property='arm_stay',
                     flag=False)
         elif event_number == 35:  #Zone bypass
-            self.update_zone_property(
-                subevent_number, poperty='bypass', flag=True)
+            self.toggle_zone_property(subevent_number, property='bypass')
         elif event_number in (36, 38):  #Zone alarm
             self.update_zone_property(
                 subevent_number, property='alarm', flag=event_number == 36)
@@ -943,7 +956,14 @@ class Paradox():
             return
         if high_nibble != 15:
             self.process_low_nibble(low_nibble)
-        if high_nibble == 5:  #Keep Alive Response
+        if high_nibble == 4:  #Bypass command response
+            zone_number = message[3] + 1
+            logger.debug(
+                "Bypass command received by panel for zone_number={:d}".format(
+                    zone_number))
+            self.toggle_zone_property(
+                zone_number=zone_number, property='bypass')
+        elif high_nibble == 5:  #Keep Alive Response
             self.process_keep_alive_response(message)
         elif high_nibble == 14:  #Live Event command, not sure about 15
             self.process_live_event_command(message)
@@ -1255,6 +1275,18 @@ class Paradox():
         #clear siren
         self.update_bell(False)
         #clear zone bypass
-        for z in self.zone_data:
-            self.update_zone_property(
-                z['number'], property="bypass", flag=False)
+        for i in range(1, self.zones + 1):
+            self.update_zone_property(i, property="bypass", flag=False)
+
+    def bypass_zone(self, zone_number):
+        """Sends bypass command for zone."""
+        if zone_number < 1 or zone_number > self.zones:
+            logger.error("Invalid zone number {:d}".format(zone_number))
+            return
+        logger.info('Sending bypass command for zone {}.'.format(
+            self.zone_data[zone_number]['label']))
+        message = bytearray(b'\x40\x00\x10')
+        message.append(zone_number - 1)
+        message += b'\x04'
+        message = message.ljust(36, b'\x00')
+        self.send_message(message)
