@@ -389,15 +389,15 @@ class Paradox():
             partition_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
                 'partition')
-            label_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
-                'label')
+            label_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
+                                               MQTT_EVENTS_TOPIC,
+                                               MQTT_PARTITION_TOPIC, 'label')
             property_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
                 'property')
-            state_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
-                'state')
+            state_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
+                                               MQTT_EVENTS_TOPIC,
+                                               MQTT_PARTITION_TOPIC, 'state')
             timestamp_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
                 'timestamp')
@@ -455,9 +455,9 @@ class Paradox():
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC, 'output')
             label_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC, 'label')
-            property_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC,
-                'property')
+            property_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
+                                                  MQTT_EVENTS_TOPIC,
+                                                  MQTT_OUTPUT_TOPIC, 'property')
             state_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC, 'state')
             timestamp_topic = "{}/{}/{}/{}".format(
@@ -527,9 +527,9 @@ class Paradox():
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC, 'property')
             state_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC, 'state')
-            timestamp_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC,
-                'timestamp')
+            timestamp_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
+                                                   MQTT_EVENTS_TOPIC,
+                                                   MQTT_ZONE_TOPIC, 'timestamp')
             self.mqtt.publish(zone_topic,
                               self.zone_data[zone_number]['machine_label'])
             self.mqtt.publish(label_topic, self.zone_data[zone_number]['label'])
