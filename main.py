@@ -26,11 +26,11 @@ logger.addHandler(ch)
 import paradox
 import serial_connection
 
-logger.info("Estasblishing serial connection...")
+logger.info("Establishing serial connection...")
 connection = serial_connection.Serial_Connection(port=SERIAL_PORT)
 connection.connect()
 logger.info("Connected to serial port.")
 paradox = paradox.Paradox(connection=connection)
 logger.info("Connected to alarm.")
-paradox.mqtt_connect(host=MQTT_HOST, port=MQTT_PORT, username=MQTT_USERNAME, password=MQTT_password)
+paradox.mqtt_connect(host=MQTT_HOST, port=MQTT_PORT, username=MQTT_USERNAME, password=MQTT_PASSWORD)
 paradox.main_loop()
