@@ -125,6 +125,8 @@ class Paradox():
                      keepalive=60,
                      bind_address=""):
         logger.info("Connecting to mqtt.")
+        if len(MQTT_USERNAME) > 0:
+            self.mqtt.set_username_pw(username=MQTT_USERNAME, password=MQTT_PASSWORD)
         self.mqtt.connect(host, port, keepalive, bind_address)
         self.mqtt.loop_start()
         self.mqtt.subscribe(

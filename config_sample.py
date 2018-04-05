@@ -39,3 +39,5 @@ import logging
 # MQTT_OUTPUT_TOPIC='outputs'
 # MQTT_STATES_TOPIC='states'
 # MQTT_RAW_TOPIC='raw'
+# MQTT_USERNAME = ''
+# MQTT_PASSWORD = ''
