@@ -22,6 +22,7 @@ import logging
 # OUTPUTS = 16
 # READ_LABELS_SECONDS = 15 * 60
 # OUTPUT_PULSE_SECONDS = 1
+# UPDATE_ALARM_TIME_DIFF_MINUTES = 2 #minimum 2. Lower values will cause constant time updates.
 
 # MQTT
 # MQTT_HOST='localhost'

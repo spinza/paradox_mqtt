@@ -684,17 +684,35 @@ class Paradox():
         logger.debug("Alarm: {0}".format(alarm))
         logger.debug("Event reporting: {0}".format(event_reporting))
 
-    def process_keep_alive_response(self, message):
+    def check_time(self):
+        now = datetime.now()
+        if self.datetime:
+            diff = abs(self.datetime - now).total_seconds() / 60
+        else:
+            diff = UPDATE_ALARM_TIME_DIFF_MINUTES
+        logger.debug("PC time: {:%Y-%m-%d %H:%M}".format(now))
+        if diff >= UPDATE_ALARM_TIME_DIFF_MINUTES:
+            logger.info('Time out by {:.1f} minutes.  Updating.'.format(diff))
+            self.set_time()
+        else:
+            logger.debug(
+                'Time out by {:.1f} minutes.  Close enough.'.format(diff))
+
+    def process_panel_status_response(self, message):
         logger.debug("Processing Keep Alive Response...")
         if message[2] == 128:  #keep alive seq response
             seq = message[3]
             if seq == 0:
                 #Alarm Time
-                self.datetime = datetime(message[9] * 100 + message[10],
-                                         message[11], message[12], message[13],
-                                         message[14])
-                logger.debug(
-                    "Alarm time: {:%Y-%m-%d %H:%M}".format(self.datetime))
+                try:
+                    self.datetime = datetime(message[9] * 100 + message[10],
+                                             message[11], message[12],
+                                             message[13], message[14])
+                    logger.debug(
+                        "Alarm time: {:%Y-%m-%d %H:%M}".format(self.datetime))
+                except:
+                    self.datetime = None
+                self.check_time()
                 #Voltage
                 self.update_voltages(
                     vdc=round(message[15] * (20.3 - 1.4) / 255.0 + 1.4, 1),
@@ -786,14 +804,19 @@ class Paradox():
         event_number = message[7]
         subevent_number = message[8]
         partition_number = message[9] + 1
-        event_timestamp = datetime(message[1] * 100 + message[2], message[3],
-                                   message[4], message[5], message[6])
+        try:
+            event_timestamp = datetime(message[1] * 100 + message[2],
+                                       message[3], message[4], message[5],
+                                       message[6])
+        except:
+            event_timestamp = None
         module_serial = int(message[10]) * 10 ^ 8 + int(
             message[11]) * 10 ^ 4 + int(message[12]) * 10 ^ 2 + int(
                 message[13]) * 10 ^ 0
         label_type = message[14]
-        logger.debug(
-            "Alarm timestamp: {:%Y-%m-%d %H:%M}".format(event_timestamp))
+        if event_timestamp:
+            logger.debug(
+                "Alarm timestamp: {:%Y-%m-%d %H:%M}".format(event_timestamp))
         logger.debug("Partition number: {:d}".format(partition_number))
         logger.debug("Module serial: {:d}".format(module_serial))
         logger.debug("Label type: {:d}".format(label_type))
