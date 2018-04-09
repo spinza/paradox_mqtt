@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger('paradox_mqtt').getChild(__name__)
 from time import sleep, time
 from datetime import datetime, timedelta
-from bits import test_bit
+from bits import test_bit, split_high_low_nibble
 from math import floor
 import paho.mqtt.client as mqtt
 
@@ -965,8 +965,7 @@ class Paradox():
         """Process message."""
         logger.debug("Processing message...")
         logger.debug("message[0]= {}".format(message[0]))
-        high_nibble = message[0] >> 4
-        low_nibble = message[0] & 0x0F
+        high_nibble, low_nibble = split_high_low_nibble(message[0])
         logger.debug("High Nibble: {:d}".format(high_nibble))
         logger.debug("Low Nibble: {:d}".format(low_nibble))
 
