@@ -79,9 +79,9 @@ class Paradox():
         self.event_reporting = False
 
         #Votage Info
-        self.vdc = None
-        self.dc = None
-        self.battery = None
+        self.input_dc_voltage = None
+        self.power_supply_dc_voltage = None
+        self.battery_dc_voltage = None
 
         #Bell on?
         self.bell = False
@@ -381,18 +381,19 @@ class Paradox():
             self.mqtt.publish(topic, self.boolean_ON_OFF(self.alarm))
 
     def publish_voltages(self):
-        if self.vdc != None:
+        if self.input_dc_voltage != None:
             topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                         'voltages', 'vdc')
-            self.mqtt.publish(topic, "{:f}".format(self.vdc))
-        if self.dc != None:
+                                         'voltages', 'input_dc_voltage')
+            self.mqtt.publish(topic, "{:f}".format(self.input_dc_voltage))
+        if self.power_supply_dc_voltage != None:
             topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                         'voltages', 'dc')
-            self.mqtt.publish(topic, "{:f}".format(self.dc))
-        if self.battery != None:
+                                         'voltages', 'power_supply_dc_voltage')
+            self.mqtt.publish(topic,
+                              "{:f}".format(self.power_supply_dc_voltage))
+        if self.battery_dc_voltage != None:
             topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                         'voltages', 'battery')
-            self.mqtt.publish(topic, "{:f}".format(self.battery))
+                                         'voltages', 'battery_dc_voltage')
+            self.mqtt.publish(topic, "{:f}".format(self.battery_dc_voltage))
 
     def publish_partitions(self):
         for i in range(1, 2 + 1):
@@ -455,12 +456,15 @@ class Paradox():
                 programmed_panel_id_b)
             self.publish_panel()
 
-    def update_voltages(self, vdc, dc, battery):
-        self.vdc = vdc
-        self.dc = dc
-        self.battery = battery
-        logger.debug("vdc: {:.2f} | dc: {:.2f} | battery: {:.2f}".format(
-            vdc, dc, battery))
+    def update_voltages(self, input_dc_voltage, power_supply_dc_voltage,
+                        battery_dc_voltage):
+        self.input_dc_voltage = input_dc_voltage
+        self.power_supply_dc_voltage = power_supply_dc_voltage
+        self.battery_dc_voltage = battery_dc_voltage
+        logger.debug(
+            "input_dc_voltage: {:.2f} | power_supply_dc_voltage: {:.2f} | battery_dc_voltage: {:.2f}".
+            format(input_dc_voltage, power_supply_dc_voltage,
+                   battery_dc_voltage))
 
     def publish_partition_event(self, partition_number, property):
         if self.partition_data[partition_number][property] != None:
@@ -794,9 +798,11 @@ class Paradox():
                 self.check_time()
                 #Voltage
                 self.update_voltages(
-                    vdc=round(message[15] * (20.3 - 1.4) / 255.0 + 1.4, 1),
-                    dc=round(message[16] * 22.8 / 255.0, 1),
-                    battery=round(message[17] * 22.8 / 255.0, 1))
+                    input_dc_voltage=round(message[15] *
+                                           (20.3 - 1.4) / 255.0 + 1.4, 1),
+                    power_supply_dc_voltage=round(message[16] * 22.8 / 255.0,
+                                                  1),
+                    battery_dc_voltage=round(message[17] * 22.8 / 255.0, 1))
                 #Zone statuses
                 for i in range(0, 4):
                     byte = message[19 + i]
