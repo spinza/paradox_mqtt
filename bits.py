@@ -24,3 +24,9 @@ def toggle_bit(int_type, offset):
     """Returns an integer with the bit at 'offset' inverted, 0 -> 1 and 1 -> 0."""
     mask = 1 << offset
     return (int_type ^ mask)
+
+
+def split_high_low_nibble(int_type):
+    high_nibble = int_type >> 4
+    low_nibble = int_type & 0x0F
+    return high_nibble, low_nibble
