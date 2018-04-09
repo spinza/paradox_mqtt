@@ -32,8 +32,48 @@ class Paradox():
         self.alarmeventmap = alarmeventmap
         self.alarmregmap = alarmregmap
 
+        #PanelInfo
+        self.panel_id = None
+        self.panel_name = None
+        self.firmware_version = None
+        self.firmware_revision = None
+        self.firmware_build = None
+        self.programmed_panel_id_a = None
+        self.programmed_panel_id_b = None
+        self.programmed_panel_id_1 = None
+        self.programmed_panel_id_2 = None
+        self.programmed_panel_id_3 = None
+        self.programmed_panel_id_4 = None
+        self.source_id = 1
+        self.datetime = None
+
+        #Trouble indicators - not implemented yet
+        self.timer_loss_trouble = None
+        self.fire_loop_trouble = None
+        self.module_tamper_trouble = None
+        self.zone_tamper_trouble = None
+        self.communication_trouble = None
+        self.bell_trouble = None
+        self.power_trouble = None
+        self.rf_transmitter_low_battery = None
+        self.rf_interference_trouble = None
+        self.module_supervision_trouble = None
+        self.zone_supervision_trouble = None
+        self.wireless_repeater_battery_failure = None
+        self.wireless_repeater_ac_loss = None
+        self.wireless_keypad_battery_failure = None
+        self.wireless_keypad_ac_loss = None
+        self.ac_failure = None
+        self.low_battery = None
+        self.communicate_computer_fail = None
+        self.communicate_voice_fail = None
+        self.communicate_pager_fail = None
+        self.central_2_reporting_fail = None
+        self.central_1_reporting_fail = None
+        self.telephone_line_trouble = None
+
         # Low Nibble Data
-        self.neware_connected = False
+        self.software_direct_connected = False
         self.software_connected = False
         self.alarm = False
         self.event_reporting = False
@@ -294,11 +334,12 @@ class Paradox():
         return "{}".format(datetime.now().isoformat())
 
     def publish_all(self):
-        self.publish_neware_connected()
+        self.publish_software_direct_connected()
         self.publish_software_connected()
         self.publish_alarm()
         self.publish_voltages()
         self.publish_bell()
+        self.publish_panel()
         self.publish_partitions()
         self.publish_outputs()
         self.publish_zones()
@@ -309,11 +350,22 @@ class Paradox():
                                       'bell')
             self.mqtt.publish(topic, self.boolean_ON_OFF(self.bell))
 
-    def publish_neware_connected(self):
-        if self.neware_connected != None:
+    def publish_panel(self):
+        if self.panel_id != None:
             topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                      'neware_connected')
-            self.mqtt.publish(topic, self.boolean_ON_OFF(self.neware_connected))
+                                      'panel_id')
+            self.mqtt.publish(topic, self.panel_id)
+        if self.panel_name != None:
+            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
+                                      'panel_name')
+            self.mqtt.publish(topic, self.panel_name)
+
+    def publish_software_direct_connected(self):
+        if self.software_direct_connected != None:
+            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
+                                      'software_direct_connected')
+            self.mqtt.publish(
+                topic, self.boolean_ON_OFF(self.software_direct_connected))
 
     def publish_software_connected(self):
         if self.software_connected != None:
@@ -376,6 +428,32 @@ class Paradox():
             else:
                 logger.warning("Bell off.")
             self.publish_bell()
+
+    def update_panel(self, panel_id, firmware_version, firmware_revision,
+                     firmware_build, programmed_panel_id_a,
+                     programmed_panel_id_b):
+        if panel_id != self.panel_id or self.firmware_version != firmware_version or self.firmware_revision != firmware_revision or self.firmware_build != firmware_build or self.programmed_panel_id_a != programmed_panel_id_a or self.programmed_panel_id_b != programmed_panel_id_b:
+            self.panel_id = panel_id
+            if panel_id == 21:
+                self.panel_name = 'SP5500'
+            elif panel_id == 22:
+                self.panel_name = 'SP6000'
+            elif panel_id == 23:
+                self.panel_name = 'SP7000'
+            elif panel_id == 64:
+                self.panel_name = 'MG5000'
+            elif panel_id == 65:
+                self.panel_name = 'MG5050'
+            else:
+                logger.error('Invalid panel_id {:d}'.format(panel_id))
+            self.firmware_version = firmware_version
+            self.firmware_revision = firmware_revision
+            self.firmware_build = firmware_build
+            self.programmed_panel_id_1, self.programmed_panel_id_2 = split_high_low_nibble(
+                programmed_panel_id_a)
+            self.programmed_panel_id_3, self.programmed_panel_id_4 = split_high_low_nibble(
+                programmed_panel_id_b)
+            self.publish_panel()
 
     def update_voltages(self, vdc, dc, battery):
         self.vdc = vdc
@@ -642,17 +720,17 @@ class Paradox():
                     partition_number, label))
 
     def process_low_nibble(self, low_nibble):
-        neware_connected = (test_bit(low_nibble, 0) == True)
+        software_direct_connected = (test_bit(low_nibble, 0) == True)
         software_connected = (test_bit(low_nibble, 1) == True)
         alarm = (test_bit(low_nibble, 2) == True)
         event_reporting = (test_bit(low_nibble, 3) == True)
 
-        if self.neware_connected != neware_connected:
-            self.neware_connected = neware_connected
-            if self.neware_connected:
-                logger.info("NEWare connected.")
+        if self.software_direct_connected != software_direct_connected:
+            self.software_direct_connected = software_direct_connected
+            if self.software_direct_connected:
+                logger.info("Software directly connected.")
             else:
-                logger.info("NEWare disconnected.")
+                logger.info("Software direct disconnected.")
 
         if self.software_connected != software_connected:
             self.software_connected = software_connected
@@ -679,7 +757,8 @@ class Paradox():
             else:
                 logger.info("Event reporting disabled.")
 
-        logger.debug("NEWare connected: {0}".format(neware_connected))
+        logger.debug(
+            "software_direct connected: {0}".format(software_direct_connected))
         logger.debug("Software connected: {0}".format(software_connected))
         logger.debug("Alarm: {0}".format(alarm))
         logger.debug("Event reporting: {0}".format(event_reporting))
@@ -700,9 +779,9 @@ class Paradox():
 
     def process_panel_status_response(self, message):
         logger.debug("Processing Keep Alive Response...")
-        if message[2] == 128:  #keep alive seq response
-            seq = message[3]
-            if seq == 0:
+        if message[2] == 128:  #Not an eeprom read
+            panel_status = message[3]
+            if panel_status == 0:
                 #Alarm Time
                 try:
                     self.datetime = datetime(message[9] * 100 + message[10],
@@ -726,7 +805,7 @@ class Paradox():
                         zone_number = i * 8 + j + 1
                         self.update_zone_property(
                             zone_number, property='open', flag=open)
-            elif seq == 1:
+            elif panel_status == 1:
                 #Parition Status
                 for i in range(0, 2):
                     partition_number = i + 1
@@ -754,16 +833,17 @@ class Paradox():
                         partition_number=partition_number,
                         property='arm_stay',
                         flag=arm_stay)
-            elif seq == 2:
+            elif panel_status == 2:
                 #Zone Bypass Status
                 for i in range(0, self.zones - 1):
                     bypass = test_bit(message[4 + i], 3)
                     self.update_zone_property(
                         zone_number=i + 1, property='bypass', flag=bypass)
-            elif seq > 2 and seq < 7:
+            elif panel_status > 2 and panel_status < 7:
                 pass  #What do these do?
             else:
-                logger.error("Invalid sequence {:d} on keep alive.".format(seq))
+                logger.error("Invalid panel_statusuence {:d} on keep alive.".
+                             format(panel_status))
         elif message[2] == 31 and message[3] == 224:
             logger.debug("Final keep alive response.")
         else:
@@ -961,6 +1041,39 @@ class Paradox():
         else:
             logger.debug("Nothing special to do for this event.")
 
+    def process_start_communication_response(self, message):
+        """Process start communication response to fetch panel_id etc."""
+        self.update_panel(
+            panel_id=message[4],
+            firmware_version=message[5],
+            firmware_revision=message[6],
+            firmware_build=message[7],
+            programmed_panel_id_a=message[8],
+            programmed_panel_id_b=message[9])
+
+    def process_initialize_communication_response(self, message):
+        """Nothing to do as for WinLoad the message contains no useful info."""
+        logger.debug("Panel received initialize communication message.")
+
+    def process_set_time_date_response(self, message):
+        """Nothing to do as for WinLoad the message contains no useful info."""
+        logger.info("Panel date & time updated.")
+
+    def process_action_response(self, message):
+        """Process result of perform action command."""
+        action = message[2]
+        if action == 16:  #Bypass action
+            zone_number = message[3] + 1
+            logger.debug(
+                "Bypass command received by panel for zone_number={:d}".format(
+                    zone_number))
+            self.toggle_zone_property(
+                zone_number=zone_number, property='bypass')
+        else:  #Unknown action response
+            logger.error(
+                "Received unkown action on action_response from pane: {:d}".
+                format(action))
+
     def process_message(self, message):
         """Process message."""
         logger.debug("Processing message...")
@@ -978,15 +1091,18 @@ class Paradox():
             return
         if high_nibble != 15:
             self.process_low_nibble(low_nibble)
-        if high_nibble == 4:  #Bypass command response
-            zone_number = message[3] + 1
-            logger.debug(
-                "Bypass command received by panel for zone_number={:d}".format(
-                    zone_number))
-            self.toggle_zone_property(
-                zone_number=zone_number, property='bypass')
+        if high_nibble == 0:  #Start communication response
+            self.process_start_communication_response(message)
+        elif high_nibble == 1:  #Initialize Communication Response
+            self.process_initialize_communication_response(message)
+        elif high_nibble == 3:  #Set time & date response
+            self.process_set_time_date_response(message)
+        elif high_nibble == 4:  #Action response
+            self.process_action_response(message)
         elif high_nibble == 5:  #Keep Alive Response
-            self.process_keep_alive_response(message)
+            self.process_panel_status_response(message)
+        elif high_nibble == 7:  #Error & disconnect  message from panel
+            logger.error("Panel sent an error message and/or disconnected.")
         elif high_nibble == 14:  #Live Event command, not sure about 15
             self.process_live_event_command(message)
         else:
