@@ -1077,7 +1077,7 @@ class Paradox():
                 zone_number=zone_number, property='bypass')
         else:  #Unknown action response
             logger.error(
-                "Received unkown action on action_response from pane: {:d}".
+                "Received unkown action on action_response from panel: {:d}".
                 format(action))
 
     def process_message(self, message):
