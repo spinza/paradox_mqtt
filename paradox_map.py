@@ -1567,7 +1567,7 @@ class ParadoxMG5050EventMap():
                 eg], ParadoxMG5050EventMap.subEventGroupMap[eg][seg]
         except KeyError:
             logger.error("No ParadoxMap for: eg=%d \t seg=%d" % (eg, seg))
-            return "-"
+            return "-","-"
 
     @staticmethod
     def getLabelTypeDescription(lt):
