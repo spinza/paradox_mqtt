@@ -1,5 +1,5 @@
 [Unit]
-Description=Starts and stops the Paradox IP150 Python script
+Description=Starts and stops the Paradox MQTT service.
 Documentation=https://github.com/spinza/paradox_mqtt
 Wants=network-online.target
 After=network-online.target
