@@ -25,10 +25,19 @@ logger.addHandler(ch)
 
 import paradox
 import serial_connection
+import time
 
 logger.info("Estasblishing serial connection...")
-connection = serial_connection.Serial_Connection(port=SERIAL_PORT)
-connection.connect()
+connected = False
+while not connected:
+    try:
+        connection = serial_connection.Serial_Connection(port=SERIAL_PORT)
+        connection.connect()
+        connected = True
+    except:
+        logger.error("Could not connect to serial port.")
+        time.sleep(5)
+        pass
 logger.info("Connected to serial port.")
 paradox = paradox.Paradox(connection=connection)
 logger.info("Connected to alarm.")
