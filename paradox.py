@@ -22,8 +22,11 @@ class Paradox():
         """Intialise Paradox"""
         logger.debug("Initialising Paradox class...")
         #mqtt client
-        self.mqtt = mqtt.Client('paradox_mqtt')
-        self.mqtt.on_message = self.mqtt_message
+        self.mqtt = mqtt.Client(client_id=MQTT_CLIENT_ID)
+        self.mqtt.on_message = self.homie_message
+        # MQTT Will
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$state')
+        self.mqtt.will_set(topic, payload='lost',  qos=HOMIE_MQTT_QOS, retain=HOMIE_MQTT_RETAIN)
 
         #Connection
         self.connection = connection
@@ -33,19 +36,20 @@ class Paradox():
         self.alarmregmap = alarmregmap
 
         #PanelInfo
-        self.panel_id = None
-        self.panel_name = None
-        self.firmware_version = None
-        self.firmware_revision = None
-        self.firmware_build = None
-        self.programmed_panel_id_a = None
-        self.programmed_panel_id_b = None
-        self.programmed_panel_id_1 = None
-        self.programmed_panel_id_2 = None
-        self.programmed_panel_id_3 = None
-        self.programmed_panel_id_4 = None
+        self.panelid = None
+        self.panelname = None
+        self.firmwareversion = None
+        self.firmwarerevision = None
+        self.firmwarebuild = None
+        self.programmedpanelida = None
+        self.programmedpanelidb = None
+        self.programmedpanelid1 = None
+        self.programmedpanelid2 = None
+        self.programmedpanelid3 = None
+        self.programmedpanelid4 = None
         self.source_id = 1
-        self.datetime = None
+        self.paneltime = None
+        self.messagetime = None
 
         #Trouble indicators - not implemented yet
         self.timer_loss_trouble = None
@@ -55,7 +59,7 @@ class Paradox():
         self.communication_trouble = None
         self.bell_trouble = None
         self.power_trouble = None
-        self.rf_transmitter_low_battery = None
+        self.rf_transmitter_lowbattery = None
         self.rf_interference_trouble = None
         self.module_supervision_trouble = None
         self.zone_supervision_trouble = None
@@ -64,7 +68,7 @@ class Paradox():
         self.wireless_keypad_battery_failure = None
         self.wireless_keypad_ac_loss = None
         self.ac_failure = None
-        self.low_battery = None
+        self.lowbattery = None
         self.communicate_computer_fail = None
         self.communicate_voice_fail = None
         self.communicate_pager_fail = None
@@ -73,10 +77,10 @@ class Paradox():
         self.telephone_line_trouble = None
 
         # Low Nibble Data
-        self.software_direct_connected = False
-        self.software_connected = False
+        self.softwaredirectconnected = False
+        self.softwareconnected = False
         self.alarm = False
-        self.event_reporting = False
+        self.eventreporting = False
 
         #Votage Info
         self.input_dc_voltage = None
@@ -93,12 +97,12 @@ class Paradox():
             partition['number'] = i
             partition['label'] = 'Partition {:d}'.format(i)
             partition['machine_label'] = partition['label'].lower().replace(' ',
-                                                                            '_')
+                                                                            '')
             partition['alarm'] = False
             partition['arm'] = None
-            partition['arm_full'] = None
-            partition['arm_sleep'] = None
-            partition['arm_stay'] = None
+            partition['armfull'] = None
+            partition['armsleep'] = None
+            partition['armstay'] = None
             self.partition_data.append(partition)
 
         #Bell on?
@@ -111,16 +115,16 @@ class Paradox():
         for i in range(0, self.zones + 1):  #implies a dummy zone 0
             zone = {}
             zone['number'] = i
-            zone['label'] = 'Zone {:d}'.format(i + 1)
-            zone['machine_label'] = zone['label'].lower().replace(' ', '_')
+            zone['label'] = 'Zone {:d}'.format(i)
+            zone['machine_label'] = zone['label'].lower().replace(' ', '')
             zone['open'] = None
             zone['bypass'] = False
             zone['alarm'] = False
-            zone['fire_alarm'] = False
+            zone['firealarm'] = False
             zone['shutdown'] = False
             zone['tamper'] = False
-            zone['low_battery'] = False
-            zone['supervision_trouble'] = False
+            zone['lowbattery'] = False
+            zone['supervisiontrouble'] = False
             self.zone_data.append(zone)
 
         #Users
@@ -130,7 +134,7 @@ class Paradox():
             user = {}
             user['number'] = i
             user['label'] = 'User {:d}'.format(i + 1)
-            user['machine_label'] = user['label'].lower().replace(' ', '_')
+            user['machine_label'] = user['label'].lower().replace(' ', '')
             self.user_data.append(user)
 
         #Outputs
@@ -140,10 +144,10 @@ class Paradox():
             output = {}
             output['number'] = i
             output['label'] = 'Output {:d}'.format(i + 1)
-            output['machine_label'] = output['label'].lower().replace(' ', '_')
+            output['machine_label'] = output['label'].lower().replace(' ', '')
             output['on'] = False
             output['pulse'] = False
-            output['supervision_trouble'] = False
+            output['supervisiontrouble'] = False
             output['tamper'] = False
             self.output_data.append(output)
 
@@ -168,123 +172,97 @@ class Paradox():
         self.mqtt.connect(host, port, keepalive, bind_address)
         self.mqtt.loop_start()
         self.mqtt.subscribe(
-            "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_CONTROL_TOPIC, "#"))
+            "{}/{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, '+','+','+','set',"#"))
         logger.info("Connected to mqtt.")
 
-    def mqtt_message_ON_OFF(self, message):
+    def homie_publish(self, topic, message):
+        self.mqtt.publish(topic=topic, payload=message, qos=HOMIE_MQTT_QOS, retain=HOMIE_MQTT_RETAIN)
+
+    def homie_message_ON_OFF(self, message):
         if message in ['ON', 'OFF']:
             return message == 'ON'
         else:
             return None
 
-    def mqtt_message(self, client, userdata, message):
+    def homie_message_true_false(self, message):
+        if message in ['true', 'false']:
+            return message == 'true'
+        else:
+            return None
+
+    def homie_partition_property_set(self, partition_number, property, message):
+        flag=self.homie_message_true_false(str(message.payload.decode("utf-8")))
+        if flag==None:
+            logger.error("Invalid message body. Should be true/false. {}".format(str(message.payload.decode("utf-8"))))
+        else:
+            if property in ["arm", "armfull", "armstay", "armsleep"]:
+                if flag:
+                    if property in ['arm', 'armfull']:
+                        self.control_alarm(
+                            partition_number=partition_number, state='ARM')
+                    elif property == 'armstay':
+                        self.control_alarm(
+                            partition_number=partition_number, state='STAY')
+                    elif property == 'armsleep':
+                        self.control_alarm(
+                            partition_number=partition_number, state='SLEEP')
+                else:
+                    self.control_alarm(partition_number=partition_number, state='DISARM')
+            else:
+                logger.error("Partition property {} not settable.".format(property))
+
+    def homie_output_property_set(self, output_number, property, message):
+        flag=self.homie_message_true_false(str(message.payload.decode("utf-8")))
+        if flag==None:
+            logger.error("Invalid message body. Should be true/false. {}".format(str(message.payload.decode("utf-8"))))
+        else:
+            if property in ["on", "pulse"]:
+                if property == 'on':
+                    self.set_output(output_number=output_number, on=flag)
+                elif property == "pulse":
+                    self.set_output_pulse(
+                        output_number=output_number, pulse=flag)
+            else:
+                logger.error("Output property {} not settable.".format(property))
+
+    def homie_zone_property_set(self, zone_number, property, message):
+        flag=self.homie_message_true_false(str(message.payload.decode("utf-8")))
+        if flag==None:
+            logger.error("Invalid message body. Should be true/false. {}".format(str(message.payload.decode("utf-8"))))
+        else:
+            if property in ["bypass"]:
+                self.bypass_zone(zone_number)
+            else:
+                logger.error("Zone property {} not settable.".format(property))
+
+    def homie_message(self, client, userdata, message):
         logger.info("message topic={}, message={}".format(
             message.topic, str(message.payload.decode("utf-8"))))
+        node_found=False
         topics = message.topic.split("/")
-        if len(topics) < 2:
-            logger.error("Invalid mqtt message.  No details topic {}.".format(
-                message.topic))
-            return
-        if topics[2] == MQTT_ZONE_TOPIC:  #Zone command
-            if len(topics) < 5:
-                logger.error("Invalid mqtt message.  Not enough topics in {}.".
-                             format(message.topic))
-                return
-            machine_label = topics[3]
-            matching_zones = [
-                z for z in self.zone_data if z['machine_label'] == machine_label
-            ]
-            if len(matching_zones) == 0:
-                logger.error("Invalid zone label provided in topic {}.".format(
-                    message.topic))
-                return
-            if topics[4] == "bypass":
-                flag = self.mqtt_message_ON_OFF(
-                    str(message.payload.decode("utf-8")))
-                if flag == None:
-                    logger.error("Invalid message body. Should be ON/OFF. {}".
-                                 format(str(message.payload.decode("utf-8"))))
-                    return
-                for z in matching_zones:
-                    self.bypass_zone(zone_number=z['number'])
-            else:
-                logger.error("Invalid zone property set in topic {}.".format(
-                    message.topic))
-
-        elif topics[2] == MQTT_PARTITION_TOPIC:  #Partition command
-            if len(topics) < 5:
-                logger.error("Invalid mqtt message.  Not enough topics in {}.".
-                             format(message.topic))
-                return
-            machine_label = topics[3]
-            matching_partitions = [
-                z for z in self.partition_data
-                if z['machine_label'] == machine_label
-            ]
-            if len(matching_partitions) == 0:
-                logger.error("Invalid partition label provided in topic {}.".
-                             format(message.topic))
-                return
-            if topics[4] in ["arm", "arm_full", "arm_stay", "arm_sleep"]:
-                flag = self.mqtt_message_ON_OFF(
-                    str(message.payload.decode("utf-8")))
-                if flag == None:
-                    logger.error("Invalid message body. Should be ON/OFF. {}".
-                                 format(str(message.payload.decode("utf-8"))))
-                    return
-                for p in matching_partitions:
-                    if flag:
-                        if topics[4] in ['arm', 'arm_full']:
-                            self.control_alarm(
-                                partition_number=p['number'], state='ARM')
-                        elif topics[4] == 'arm_stay':
-                            self.control_alarm(
-                                partition_number=p['number'], state='STAY')
-                        elif topics[4] == 'arm_sleep':
-                            self.control_alarm(
-                                partition_number=p['number'], state='SLEEP')
-                    else:
-                        self.control_alarm(
-                            partition_number=p['number'], state='DISARM')
-            else:
-                logger.error("Invalid partition property set in topic {}.".
-                             format(message.topic))
-        elif topics[2] == MQTT_OUTPUT_TOPIC:  #Output command
-            if len(topics) < 5:
-                logger.error("Invalid mqtt message.  Not enough topics in {}.".
-                             format(message.topic))
-                return
-            machine_label = topics[3]
-            matching_outputs = [
-                z for z in self.output_data
-                if z['machine_label'] == machine_label
-            ]
-            if len(matching_outputs) == 0:
-                logger.error("Invalid output label provided in topic {}.".
-                             format(message.topic))
-                return
-            if topics[4] in ["on", "pulse"]:
-                flag = self.mqtt_message_ON_OFF(
-                    str(message.payload.decode("utf-8")))
-                if flag == None:
-                    logger.error("Invalid message body. Should be ON/OFF. {}".
-                                 format(str(message.payload.decode("utf-8"))))
-                    return
-                for o in matching_outputs:
-                    if topics[4] == "pulse":
-                        self.set_output_pulse(
-                            output_number=o['number'], pulse=flag)
-                    else:
-                        self.set_output(output_number=o['number'], on=flag)
-            else:
-                logger.error("Invalid output property set in topic {}.".format(
-                    message.topic))
+        node_id=topics[2]
+        property=topics[3]
+        for i in range(1, 2 + 1):
+            if node_id==self.partition_data[i]['machine_label']:
+                self.homie_partition_property_set(partition_number=i,property=property, message=message)
+                node_found=True
+        if not node_found:
+            for i in range(1, self.outputs + 1):
+                if node_id==self.output_data[i]['machine_label']:
+                    self.homie_output_property_set(output_number=i, property=property, message=message)
+                    node_found=True
+        if not node_found:
+            for i in range(1, self.zones + 1):
+                if node_id==self.zone_data[i]['machine_label']:
+                    self.homie_zone_property_set(zone_number=i, property=property, message=message)
+                    node_found=True
 
     def main_loop(self):
         """Wait for and then process messages."""
         keep_alive_time = datetime(1900, 1, 1)
         label_time = datetime(1900, 1, 1)
-        mqtt_publish_all_time = datetime(1900, 1, 1)
+        homie_init_time = datetime(1900, 1, 1)
+        homie_publish_all_time = datetime(1900, 1, 1)
         output_pulse_time = datetime(1900, 1, 1)
         while True:
             if self.connection.in_waiting() >= 37:
@@ -292,9 +270,9 @@ class Paradox():
                 logger.debug("Received message: {} ".format(message))
                 self.process_message(message)
             sleep(0.1)
-            if not self.software_connected:
+            if not self.softwareconnected:
                 self.connect_software()
-            if datetime.now() > mqtt_publish_all_time + timedelta(
+            if datetime.now() > label_time + timedelta(
                     seconds=READ_LABELS_SECONDS):
                 self.read_labels()
                 label_time = datetime.now()
@@ -302,10 +280,14 @@ class Paradox():
                     seconds=KEEP_ALIVE_SECONDS):
                 self.keep_alive()
                 keep_alive_time = datetime.now()
-            if datetime.now() > mqtt_publish_all_time + timedelta(
-                    seconds=MQTT_PUBLISH_ALL_SECONDS):
-                self.publish_all()
-                mqtt_publish_all_time = datetime.now()
+            if datetime.now() > homie_init_time + timedelta(
+                    seconds=HOMIE_INIT_SECONDS):
+                self.homie_init()
+                homie_init_time = datetime.now()
+            if datetime.now() > homie_publish_all_time + timedelta(
+                    seconds=HOMIE_PUBLISH_ALL_SECONDS):
+                self.homie_publish_all()
+                homie_publish_all_time = datetime.now()
             if datetime.now() > output_pulse_time + timedelta(
                     seconds=OUTPUT_PULSE_SECONDS):
                 self.pulse_outputs()
@@ -324,102 +306,212 @@ class Paradox():
             sleep(0.1)
         return None
 
-    def boolean_ON_OFF(self, b):
+    def boolean_ON_OFF_OLD(self, b):
         if b:
             return "ON"
         else:
             return "OFF"
 
-    def timestamp_str(self):
+    def timestamp_str(self,date=datetime.now()):
         return "{}".format(datetime.now().isoformat())
 
-    def publish_all(self):
-        self.publish_software_direct_connected()
-        self.publish_software_connected()
-        self.publish_alarm()
-        self.publish_voltages()
-        self.publish_bell()
-        self.publish_panel()
-        self.publish_partitions()
-        self.publish_outputs()
-        self.publish_zones()
+    def homie_publish_device_state(self, state):
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$state')
+        self.homie_publish(topic, state)
 
-    def publish_bell(self):
-        if self.bell != None:
-            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                      'bell')
-            self.mqtt.publish(topic, self.boolean_ON_OFF(self.bell))
+    def homie_init(self):
+        # device to init
+        self.homie_init_device()
+        self.homie_init_panel()
+        self.homie_init_partitions()
+        self.homie_init_outputs()
+        self.homie_init_zones()
 
-    def publish_panel(self):
-        if self.panel_id != None:
-            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                      'panel_id')
-            self.mqtt.publish(topic, self.panel_id)
-        if self.panel_name != None:
-            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                      'panel_name')
-            self.mqtt.publish(topic, self.panel_name)
+        # device ready
+        self.homie_publish_device_state('ready')
 
-    def publish_software_direct_connected(self):
-        if self.software_direct_connected != None:
-            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                      'software_direct_connected')
-            self.mqtt.publish(
-                topic, self.boolean_ON_OFF(self.software_direct_connected))
 
-    def publish_software_connected(self):
-        if self.software_connected != None:
-            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                      'software_connected')
-            self.mqtt.publish(topic,
-                              self.boolean_ON_OFF(self.software_connected))
-
-    def publish_alarm(self):
-        if self.alarm != None:
-            topic = "{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                      'alarm')
-            self.mqtt.publish(topic, self.boolean_ON_OFF(self.alarm))
-
-    def publish_voltages(self):
-        if self.input_dc_voltage != None:
-            topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                         'voltages', 'input_dc_voltage')
-            self.mqtt.publish(topic, "{:f}".format(self.input_dc_voltage))
-        if self.power_supply_dc_voltage != None:
-            topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                         'voltages', 'power_supply_dc_voltage')
-            self.mqtt.publish(topic,
-                              "{:f}".format(self.power_supply_dc_voltage))
-        if self.battery_dc_voltage != None:
-            topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_STATES_TOPIC,
-                                         'voltages', 'battery_dc_voltage')
-            self.mqtt.publish(topic, "{:f}".format(self.battery_dc_voltage))
-
-    def publish_partitions(self):
+    def homie_init_device(self):
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$homie')
+        self.homie_publish(topic, HOMIE_DEVICE_VERSION)
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$name')
+        self.homie_publish(topic, HOMIE_DEVICE_NAME)
+        self.homie_publish_device_state('init')
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$nodes')
+        nodes='panel'
         for i in range(1, 2 + 1):
-            self.publish_partition_property(i, 'alarm')
-            self.publish_partition_property(i, 'arm')
-            self.publish_partition_property(i, 'arm_full')
-            self.publish_partition_property(i, 'arm_sleep')
-            self.publish_partition_property(i, 'arm_stay')
-
-    def publish_outputs(self):
+            nodes=nodes+','+self.partition_data[i]['machine_label']
         for i in range(1, self.outputs + 1):
-            self.publish_output_property(i, 'on')
-            self.publish_output_property(i, 'pulse')
-            self.publish_output_property(i, 'tamper')
-            self.publish_output_property(i, 'supervision_trouble')
-
-    def publish_zones(self):
+            nodes=nodes+','+self.output_data[i]['machine_label']
         for i in range(1, self.zones + 1):
-            self.publish_zone_property(i, 'open')
-            self.publish_zone_property(i, 'bypass')
-            self.publish_zone_property(i, 'alarm')
-            self.publish_zone_property(i, 'fire_alarm')
-            self.publish_zone_property(i, 'shutdown')
-            self.publish_zone_property(i, 'tamper')
-            self.publish_zone_property(i, 'low_battery')
-            self.publish_zone_property(i, 'supervision_trouble')
+            nodes=nodes+','+self.zone_data[i]['machine_label']
+        self.homie_publish(topic, nodes)
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$extensions')
+        self.homie_publish(topic, '')
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$implementation')
+        self.homie_publish(topic, HOMIE_IMPLEMENTATION)
+        #self.homie_publish(topic, 'satus, voltages, partition[], output[], zone[]')
+
+    def homie_publish_all(self, init=False):
+        self.homie_publish_panel()
+        self.homie_publish_partitions()
+        self.homie_publish_outputs()
+        self.homie_publish_zones()
+
+    def homie_init_node(self, node_id, name, type=None, properties=None):
+        topic = "{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, '$name')
+        self.homie_publish(topic, name)
+        if type != None:
+            topic = "{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, '$type')
+            self.homie_publish(topic, type)
+        if properties != None:
+            topic = "{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, '$properties')
+            self.homie_publish(topic, properties)
+
+    def homie_message_boolean(self,value):
+        if value:
+            return 'true'
+        else:
+            return 'false'
+
+    def homie_publish_boolean(self,topic,value):
+        message=self.homie_message_boolean(value)
+        self.homie_publish(topic, message)
+
+    def homie_publish_property(self, node_id, property_id, datatype, value=None):
+        if value != None:
+            topic = "{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id)
+            if datatype=='boolean':
+                message=self.homie_message_boolean( value)
+            else:
+                message=value
+            self.homie_publish(topic, message)
+
+    def homie_init_property(self, node_id, property_id, name, datatype, format=None, settable=False, retained=True, unit=None):
+        topic = "{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id, '$name')
+        self.homie_publish(topic, name)
+        topic = "{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id, '$datatype')
+        self.homie_publish(topic, datatype)
+        if format != None:
+            topic = "{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id, '$format')
+            self.homie_publish(topic, format)
+        topic = "{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id, '$settable')
+        self.homie_publish_boolean(topic,settable)
+        topic = "{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id, '$retained')
+        self.homie_publish_boolean(topic,retained)
+        if unit != None:
+            topic = "{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id, '$unit')
+            self.homie_publish(topic, unit)
+
+    def homie_init_panel(self):
+        self.homie_init_node(node_id='panel', name='Panel',properties='panelid,panelname,firmwareversion,firmwarerevision,firmwarebuild,programmedpanelida,programmedpanelidb,programmedpanelid1,programmedpanelid2,programmedpanelid3,programmedpanelid4,paneltime,messagetime,softwaredirectconnected,softwareconnected,alarm,eventreporting,bell,inputdcvoltage,powersupplydcvoltage,batterydcvoltage')
+        self.homie_init_property(node_id='panel', property_id='panelid', name='Panel ID', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='panelname', name='Panel Name', datatype='string')
+        self.homie_init_property(node_id='panel', property_id='firmwareversion', name='Firmware Version', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='firmwarerevision', name='Firmware Revision', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='firmwarebuild', name='Firmware Build', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='programmedpanelida', name='Programmed Panel ID A', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='programmedpanelidb', name='Programmed Panel ID B', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='programmedpanelid1', name='Programmed Panel ID 1', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='programmedpanelid2', name='Programmed Panel ID 2', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='programmedpanelid3', name='Programmed Panel ID 3', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='programmedpanelid4', name='Programmed Panel ID 4', datatype='integer')
+        self.homie_init_property(node_id='panel', property_id='paneltime', name='Panel Time', datatype='string')
+        self.homie_init_property(node_id='panel', property_id='messagetime', name='Message Time', datatype='string')
+        self.homie_init_property(node_id='panel', property_id='softwaredirectconnected', name='Software Direct Connected', datatype='boolean')
+        self.homie_init_property(node_id='panel', property_id='softwareconnected', name='Software Connected', datatype='boolean')
+        self.homie_init_property(node_id='panel', property_id='alarm', name='Alarm', datatype='boolean')
+        self.homie_init_property(node_id='panel', property_id='eventreporting', name='Event Reporting', datatype='boolean')
+        self.homie_init_property(node_id='panel', property_id='bell', name='Bell', datatype='boolean')
+        self.homie_init_property(node_id='panel', property_id='inputdcvoltage', name='Input DC Voltage', datatype='float', unit='v')
+        self.homie_init_property(node_id='panel', property_id='powersupplydcvoltage', name='Power Supply DC Voltage', datatype='float', unit='v')
+        self.homie_init_property(node_id='panel', property_id='batterydcvoltage', name='Battery DC Voltage', datatype='float', unit='v')
+
+
+    def homie_publish_panel(self):
+        self.homie_publish_property(node_id='panel', property_id='panelid', datatype='integer', value=self.panelid)
+        self.homie_publish_property(node_id='panel', property_id='panelname', datatype='string', value=self.panelname)
+        self.homie_publish_property(node_id='panel', property_id='firmwareversion', datatype='string', value=self.firmwareversion)
+        self.homie_publish_property(node_id='panel', property_id='firmwarerevision', datatype='string', value=self.firmwarerevision)
+        self.homie_publish_property(node_id='panel', property_id='firmwarebuild', datatype='string', value=self.firmwarebuild)
+        self.homie_publish_property(node_id='panel', property_id='programmedpanelida', datatype='string', value=self.programmedpanelida)
+        self.homie_publish_property(node_id='panel', property_id='programmedpanelidb', datatype='string', value=self.programmedpanelidb)
+        self.homie_publish_property(node_id='panel', property_id='programmedpanelid1', datatype='string', value=self.programmedpanelid1)
+        self.homie_publish_property(node_id='panel', property_id='programmedpanelid2', datatype='string', value=self.programmedpanelid2)
+        self.homie_publish_property(node_id='panel', property_id='programmedpanelid3', datatype='string', value=self.programmedpanelid3)
+        self.homie_publish_property(node_id='panel', property_id='programmedpanelid4', datatype='string', value=self.programmedpanelid4)
+        self.homie_publish_property(node_id='panel', property_id='paneltime', datatype='string', value=self.timestamp_str(self.paneltime))
+        self.homie_publish_property(node_id='panel', property_id='messagetime', datatype='string', value=self.timestamp_str(self.messagetime))
+        self.homie_publish_property(node_id='panel', property_id='softwaredirectconnected', datatype='boolean', value=self.softwaredirectconnected)
+        self.homie_publish_property(node_id='panel', property_id='softwareconnected', datatype='boolean', value=self.softwareconnected)
+        self.homie_publish_property(node_id='panel', property_id='alarm', datatype='boolean', value=self.alarm)
+        self.homie_publish_property(node_id='panel', property_id='eventreporting', datatype='boolean', value=self.eventreporting)
+        self.homie_publish_property(node_id='panel', property_id='bell', datatype='boolean', value=self.bell)
+        self.homie_publish_property(node_id='panel', property_id='inputdcvoltage', datatype='float', value=self.input_dc_voltage)
+        self.homie_publish_property(node_id='panel', property_id='powersupplydcvoltage', datatype='float', value=self.power_supply_dc_voltage)
+        self.homie_publish_property(node_id='panel', property_id='batterydcvoltage', datatype='float', value=self.battery_dc_voltage)
+
+    def homie_init_partitions(self):
+        for i in range(1, 2 + 1):
+            node_id=self.partition_data[i]['machine_label']
+            self.homie_init_node(node_id=node_id, name=self.partition_data[i]['label'], type=None, properties='alarm,arm,armfull,armsleep,armstay')
+            self.homie_init_property(node_id=node_id, property_id='alarm',name='Alarm', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='arm',name='Arm', datatype='boolean',settable=True)
+            self.homie_init_property(node_id=node_id, property_id='armfull',name='Arm Full', datatype='boolean',settable=True)
+            self.homie_init_property(node_id=node_id, property_id='armsleep',name='Arm Sleep', datatype='boolean',settable=True)
+            self.homie_init_property(node_id=node_id, property_id='armstay',name='Arm Stay', datatype='boolean',settable=True)
+
+    def homie_publish_partitions(self):
+        for i in range(1, 2 + 1):
+            node_id=self.partition_data[i]['machine_label']
+            self.homie_publish_property(node_id=node_id, property_id='alarm', datatype='boolean', value=self.partition_data[i]['alarm'])
+            self.homie_publish_property(node_id=node_id, property_id='arm', datatype='boolean', value=self.partition_data[i]['arm'])
+            self.homie_publish_property(node_id=node_id, property_id='armfull', datatype='boolean', value=self.partition_data[i]['armfull'])
+            self.homie_publish_property(node_id=node_id, property_id='armsleep', datatype='boolean', value=self.partition_data[i]['armsleep'])
+            self.homie_publish_property(node_id=node_id, property_id='armstay', datatype='boolean', value=self.partition_data[i]['armstay'])
+
+    def homie_init_outputs(self):
+        for i in range(1, self.outputs + 1):
+            node_id=self.output_data[i]['machine_label']
+            self.homie_init_node(node_id=node_id, name=self.output_data[i]['label'], type=None, properties='on,pulse,tamper,supervisiontrouble')
+            self.homie_init_property(node_id=node_id, property_id='on',name='On', datatype='boolean',settable=True)
+            self.homie_init_property(node_id=node_id, property_id='pulse',name='Pulse', datatype='boolean',settable=True)
+            self.homie_init_property(node_id=node_id, property_id='tamper',name='Tamper', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='supervisiontrouble',name='Supervision Trouble', datatype='boolean',settable=False)
+
+    def homie_publish_outputs(self):
+        for i in range(1, self.outputs + 1):
+            node_id=self.output_data[i]['machine_label']
+            self.homie_publish_property(node_id=node_id, property_id='on', datatype='boolean', value=self.output_data[i]['on'])
+            self.homie_publish_property(node_id=node_id, property_id='pulse', datatype='boolean', value=self.output_data[i]['pulse'])
+            self.homie_publish_property(node_id=node_id, property_id='tamper', datatype='boolean', value=self.output_data[i]['tamper'])
+            self.homie_publish_property(node_id=node_id, property_id='supervisiontrouble', datatype='boolean', value=self.output_data[i]['supervisiontrouble'])
+
+    def homie_init_zones(self):
+        for i in range(1, self.zones + 1):
+            node_id=self.zone_data[i]['machine_label']
+            self.homie_init_node(node_id=node_id, name=self.zone_data[i]['label'], type=None, properties='open,bypass,alarm,firealarm,shutdown,tamper,lowbattery,supervisiontrouble')
+            self.homie_init_property(node_id=node_id, property_id='open',name='Open', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='bypass',name='Bypass', datatype='boolean',settable=True)
+            self.homie_init_property(node_id=node_id, property_id='alarm',name='Alarm', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='firealarm',name='Fire Alarm', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='shutdown',name='Shutdown', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='tamper',name='Tamper', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='lowbattery',name='Low Battery', datatype='boolean',settable=False)
+            self.homie_init_property(node_id=node_id, property_id='supervisiontrouble',name='Supervision Trouble', datatype='boolean',settable=False)
+
+
+    def homie_publish_zones(self):
+        for i in range(1, self.zones + 1):
+            node_id=self.zone_data[i]['machine_label']
+            self.homie_publish_property(node_id=node_id, property_id='open', datatype='boolean', value=self.zone_data[i]['open'])
+            self.homie_publish_property(node_id=node_id, property_id='bypass', datatype='boolean', value=self.zone_data[i]['bypass'])
+            self.homie_publish_property(node_id=node_id, property_id='alarm', datatype='boolean', value=self.zone_data[i]['alarm'])
+            self.homie_publish_property(node_id=node_id, property_id='firealarm', datatype='boolean', value=self.zone_data[i]['firealarm'])
+            self.homie_publish_property(node_id=node_id, property_id='shutdown', datatype='boolean', value=self.zone_data[i]['shutdown'])
+            self.homie_publish_property(node_id=node_id, property_id='tamper', datatype='boolean', value=self.zone_data[i]['tamper'])
+            self.homie_publish_property(node_id=node_id, property_id='lowbattery', datatype='boolean', value=self.zone_data[i]['lowbattery'])
+            self.homie_publish_property(node_id=node_id, property_id='supervisiontrouble', datatype='boolean', value=self.zone_data[i]['supervisiontrouble'])
 
     def update_bell(self, bell):
         if bell != self.bell:
@@ -428,45 +520,48 @@ class Paradox():
                 logger.warning("Bell on!")
             else:
                 logger.warning("Bell off.")
-            self.publish_bell()
+            self.homie_publish_property(node_id='panel', property_id='bell', datatype='boolean', value=self.bell)
 
-    def update_panel(self, panel_id, firmware_version, firmware_revision,
-                     firmware_build, programmed_panel_id_a,
-                     programmed_panel_id_b):
-        if panel_id != self.panel_id or self.firmware_version != firmware_version or self.firmware_revision != firmware_revision or self.firmware_build != firmware_build or self.programmed_panel_id_a != programmed_panel_id_a or self.programmed_panel_id_b != programmed_panel_id_b:
-            self.panel_id = panel_id
-            if panel_id == 21:
-                self.panel_name = 'SP5500'
-            elif panel_id == 22:
-                self.panel_name = 'SP6000'
-            elif panel_id == 23:
-                self.panel_name = 'SP7000'
-            elif panel_id == 64:
-                self.panel_name = 'MG5000'
-            elif panel_id == 65:
-                self.panel_name = 'MG5050'
+    def update_panel(self, panelid, firmwareversion, firmwarerevision,
+                     firmwarebuild, programmedpanelida,
+                     programmedpanelidb):
+        if panelid != self.panelid or self.firmwareversion != firmwareversion or self.firmwarerevision != firmwarerevision or self.firmwarebuild != firmwarebuild or self.programmedpanelida != programmedpanelida or self.programmedpanelidb != programmedpanelidb:
+            self.panelid = panelid
+            if panelid == 21:
+                self.panelname = 'SP5500'
+            elif panelid == 22:
+                self.panelname = 'SP6000'
+            elif panelid == 23:
+                self.panelname = 'SP7000'
+            elif panelid == 64:
+                self.panelname = 'MG5000'
+            elif panelid == 65:
+                self.panelname = 'MG5050'
             else:
-                logger.error('Invalid panel_id {:d}'.format(panel_id))
-            self.firmware_version = firmware_version
-            self.firmware_revision = firmware_revision
-            self.firmware_build = firmware_build
-            self.programmed_panel_id_1, self.programmed_panel_id_2 = split_high_low_nibble(
-                programmed_panel_id_a)
-            self.programmed_panel_id_3, self.programmed_panel_id_4 = split_high_low_nibble(
-                programmed_panel_id_b)
-            self.publish_panel()
+                logger.error('Invalid panelid {:d}'.format(panelid))
+            self.firmwareversion = firmwareversion
+            self.firmwarerevision = firmwarerevision
+            self.firmwarebuild = firmwarebuild
+            self.programmedpanelid1, self.programmedpanelid2 = split_high_low_nibble(
+                programmedpanelida)
+            self.programmedpanelid3, self.programmedpanelid4 = split_high_low_nibble(
+                programmedpanelidb)
+            self.homie_publish_panel()
 
     def update_voltages(self, input_dc_voltage, power_supply_dc_voltage,
                         battery_dc_voltage):
         self.input_dc_voltage = input_dc_voltage
         self.power_supply_dc_voltage = power_supply_dc_voltage
         self.battery_dc_voltage = battery_dc_voltage
+        self.homie_publish_property(node_id='panel', property_id='inputdcvoltage', datatype='float', value=self.input_dc_voltage)
+        self.homie_publish_property(node_id='panel', property_id='powersupplydcvoltage', datatype='float', value=self.power_supply_dc_voltage)
+        self.homie_publish_property(node_id='panel', property_id='batterydcvoltage', datatype='float', value=self.battery_dc_voltage)
         logger.debug(
             "input_dc_voltage: {:.2f} | power_supply_dc_voltage: {:.2f} | battery_dc_voltage: {:.2f}".
             format(input_dc_voltage, power_supply_dc_voltage,
                    battery_dc_voltage))
 
-    def publish_partition_event(self, partition_number, property):
+    def publish_partition_event_OLD(self, partition_number, property):
         if self.partition_data[partition_number][property] != None:
             partition_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
@@ -495,7 +590,7 @@ class Paradox():
                     self.partition_data[partition_number][property]))
             self.mqtt.publish(timestamp_topic, self.timestamp_str())
 
-    def publish_partition_property(self, partition_number, property="arm"):
+    def publish_partition_property_OLD(self, partition_number, property="arm"):
         if self.partition_data[partition_number][property] != None:
             topic = "{}/{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_STATES_TOPIC, MQTT_PARTITION_TOPIC,
@@ -526,12 +621,11 @@ class Paradox():
                 else:
                     logger.info('Partition {:d},"{}", Not {}.'.format(
                         partition_number, label, property))
-                self.publish_partition_property(partition_number, property)
-                self.publish_partition_event(partition_number, property)
+                self.homie_publish_property(node_id=self.partition_data[partition_number]['machine_label'], property_id=property, datatype='boolean', value=flag)
                 if property == 'arm' and flag == False:
                     self.clear_on_disarm()
 
-    def publish_output_event(self, output_number, property):
+    def publish_output_event_OLD(self, output_number, property):
         if self.output_data[output_number][property] != None:
             output_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC, 'output')
@@ -555,7 +649,7 @@ class Paradox():
                 self.boolean_ON_OFF(self.output_data[output_number][property]))
             self.mqtt.publish(timestamp_topic, self.timestamp_str())
 
-    def publish_output_property(self, output_number, property=None):
+    def publish_output_property_OLD(self, output_number, property=None):
         if self.output_data[output_number][property] != None:
             topic = "{}/{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_STATES_TOPIC, MQTT_OUTPUT_TOPIC,
@@ -580,8 +674,7 @@ class Paradox():
                 else:
                     logger.info('Output {:d},"{}", Not {}.'.format(
                         output_number, label, property))
-                self.publish_output_property(output_number, property)
-                self.publish_output_event(output_number, property)
+                self.homie_publish_property(node_id=self.output_data[output_number]['machine_label'], property_id=property, datatype='boolean', value=flag)
 
     def update_output_label(self, output_number, label=None):
         if output_number > self.outputs or output_number < 1:
@@ -592,14 +685,12 @@ class Paradox():
                     'label'] == None or self.output_data[output_number][
                         'label'] != label:
                 self.output_data[output_number]['label'] = label
-                self.output_data[output_number]['machine_label'] = label.lower(
-                ).replace(' ', '_')
                 logger.info('Output {:d} label set to "{}".'.format(
                     output_number, label))
             self.eventmap.setoutputLabel(
                 output_number, self.output_data[output_number]['machine_label'])
 
-    def publish_zone_event(self, zone_number, property):
+    def publish_zone_event_OLD(self, zone_number, property):
         if self.zone_data[zone_number][property] != None:
             zone_topic = "{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC, 'zone')
@@ -621,7 +712,7 @@ class Paradox():
                 self.boolean_ON_OFF(self.zone_data[zone_number][property]))
             self.mqtt.publish(timestamp_topic, self.timestamp_str())
 
-    def publish_zone_property(self, zone_number, property="open"):
+    def publish_zone_property_OLD(self, zone_number, property="open"):
         if self.zone_data[zone_number][property] != None:
             topic = "{}/{}/{}/{}/{}".format(
                 MQTT_BASE_TOPIC, MQTT_STATES_TOPIC, MQTT_ZONE_TOPIC,
@@ -645,8 +736,7 @@ class Paradox():
                 else:
                     logger.info('Zone {:d},"{}", Not {}.'.format(
                         zone_number, label, property))
-                self.publish_zone_property(zone_number, property)
-                self.publish_zone_event(zone_number, property)
+                self.homie_publish_property(node_id=self.zone_data[zone_number]['machine_label'], property_id=property, datatype='boolean', value=flag)
 
     def toggle_zone_property(self, zone_number, property="open"):
         if zone_number > self.zones or zone_number < 1:
@@ -665,8 +755,6 @@ class Paradox():
             if self.zone_data[zone_number]['label'] == None or self.zone_data[
                     zone_number]['label'] != label:
                 self.zone_data[zone_number]['label'] = label
-                self.zone_data[zone_number]['machine_label'] = label.lower(
-                ).replace(' ', '_')
                 logger.info(
                     'Zone {:d} label set to "{}".'.format(zone_number, label))
             self.eventmap.setzoneLabel(
@@ -701,8 +789,6 @@ class Paradox():
             if self.user_data[user_number]['label'] == None or self.user_data[
                     user_number]['label'] != label:
                 self.user_data[user_number]['label'] = label
-                self.user_data[user_number]['machine_label'] = label.lower(
-                ).replace(' ', '_')
                 logger.info(
                     'User {:d} label set to "{}".'.format(user_number, label))
             self.eventmap.setuserLabel(
@@ -718,33 +804,34 @@ class Paradox():
                     'label'] == None or self.partition_data[partition_number][
                         'label'] != label:
                 self.partition_data[partition_number]['label'] = label
-                self.partition_data[partition_number][
-                    'machine_label'] = label.lower().replace(' ', '_')
                 logger.info('Partition {:d} label set to "{}".'.format(
                     partition_number, label))
 
     def process_low_nibble(self, low_nibble):
-        software_direct_connected = (test_bit(low_nibble, 0) == True)
-        software_connected = (test_bit(low_nibble, 1) == True)
+        softwaredirectconnected = (test_bit(low_nibble, 0) == True)
+        softwareconnected = (test_bit(low_nibble, 1) == True)
         alarm = (test_bit(low_nibble, 2) == True)
-        event_reporting = (test_bit(low_nibble, 3) == True)
+        eventreporting = (test_bit(low_nibble, 3) == True)
 
-        if self.software_direct_connected != software_direct_connected:
-            self.software_direct_connected = software_direct_connected
-            if self.software_direct_connected:
+        if self.softwaredirectconnected != softwaredirectconnected:
+            self.softwaredirectconnected = softwaredirectconnected
+            self.homie_publish_property(node_id='panel', property_id='softwaredirectconnected', datatype='boolean', value=self.softwaredirectconnected)
+            if self.softwaredirectconnected:
                 logger.info("Software directly connected.")
             else:
                 logger.info("Software direct disconnected.")
 
-        if self.software_connected != software_connected:
-            self.software_connected = software_connected
-            if self.software_connected:
+        if self.softwareconnected != softwareconnected:
+            self.softwareconnected = softwareconnected
+            self.homie_publish_property(node_id='panel', property_id='softwareconnected', datatype='boolean', value=self.softwareconnected)
+            if self.softwareconnected:
                 logger.info("Software connected.")
             else:
                 logger.info("Software disconnected.")
 
         if self.alarm != alarm:
             self.alarm = alarm
+            self.homie_publish_property(node_id='panel', property_id='alarm', datatype='boolean', value=self.alarm)
             if self.alarm:
                 logger.warning("Alarm activated!")
             else:
@@ -754,23 +841,24 @@ class Paradox():
                 self.update_partition_property(
                     partition_number=2, property='alarm', flag=False)
 
-        if self.event_reporting != event_reporting:
-            self.event_reporting = event_reporting
-            if self.event_reporting:
+        if self.eventreporting != eventreporting:
+            self.eventreporting = eventreporting
+            self.homie_publish_property(node_id='panel', property_id='eventreporting', datatype='boolean', value=self.eventreporting)
+            if self.eventreporting:
                 logger.info("Event reporting activated.")
             else:
                 logger.info("Event reporting disabled.")
 
         logger.debug(
-            "software_direct connected: {0}".format(software_direct_connected))
-        logger.debug("Software connected: {0}".format(software_connected))
+            "software_direct connected: {0}".format(softwaredirectconnected))
+        logger.debug("Software connected: {0}".format(softwareconnected))
         logger.debug("Alarm: {0}".format(alarm))
-        logger.debug("Event reporting: {0}".format(event_reporting))
+        logger.debug("Event reporting: {0}".format(eventreporting))
 
     def check_time(self):
         now = datetime.now()
-        if self.datetime:
-            diff = abs(self.datetime - now).total_seconds() / 60
+        if self.paneltime:
+            diff = abs(self.paneltime - now).total_seconds() / 60
         else:
             diff = UPDATE_ALARM_TIME_DIFF_MINUTES
         logger.debug("PC time: {:%Y-%m-%d %H:%M}".format(now))
@@ -788,13 +876,14 @@ class Paradox():
             if panel_status == 0:
                 #Alarm Time
                 try:
-                    self.datetime = datetime(message[9] * 100 + message[10],
+                    self.paneltime = datetime(message[9] * 100 + message[10],
                                              message[11], message[12],
                                              message[13], message[14])
+                    self.homie_publish_property(node_id='panel', property_id='paneltime', datatype='string', value=self.timestamp_str(self.paneltime))
                     logger.debug(
-                        "Alarm time: {:%Y-%m-%d %H:%M}".format(self.datetime))
+                        "Panel time: {:%Y-%m-%d %H:%M}".format(self.paneltime))
                 except:
-                    self.datetime = None
+                    self.paneltime = None
                 self.check_time()
                 #Voltage
                 self.update_voltages(
@@ -829,15 +918,15 @@ class Paradox():
                         flag=arm)
                     self.update_partition_property(
                         partition_number=partition_number,
-                        property='arm_full',
+                        property='armfull',
                         flag=arm_full)
                     self.update_partition_property(
                         partition_number=partition_number,
-                        property='arm_sleep',
+                        property='armsleep',
                         flag=arm_sleep)
                     self.update_partition_property(
                         partition_number=partition_number,
-                        property='arm_stay',
+                        property='armstay',
                         flag=arm_stay)
             elif panel_status == 2:
                 #Zone Bypass Status
@@ -856,7 +945,7 @@ class Paradox():
             logger.error(
                 "Can't process this keep alive response:{}".format(message))
 
-    def publish_raw_event(self, partition_number, event_number,
+    def publish_raw_event_OLD(self, partition_number, event_number,
                           subevent_number):
         event, subevent = self.eventmap.getEventDescription(event_number,
                                                             subevent_number)
@@ -883,7 +972,7 @@ class Paradox():
         self.mqtt.publish(subevent_topic, subevent)
         timestamp_topic = "{}/{}/{}/{}".format(
             MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_RAW_TOPIC, 'timestamp')
-        self.mqtt.publish(timestamp_topic, self.timestamp_str())
+        self.mqtt.publish(topic=timestamp_topic, payload=self.timestamp_str())
 
     def process_live_event_command(self, message):
         logger.debug("Processing live event command...")
@@ -917,7 +1006,7 @@ class Paradox():
                                                             subevent_number)
         logger.info("partition_number: {:d}, event: {}, subevent {}".format(
             partition_number, event, subevent))
-        self.publish_raw_event(partition_number, event_number, subevent_number)
+        #self.publish_raw_event(partition_number, event_number, subevent_number)
 
         if ord(label[0]) == 0 or len(label) == 0:
             label = None
@@ -950,15 +1039,15 @@ class Paradox():
                     flag=False)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_full',
+                    property='armfull',
                     flag=False)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_sleep',
+                    property='armsleep',
                     flag=False)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_stay',
+                    property='armstay',
                     flag=False)
                 self.update_partition_property(
                     partition_number=partition_number,
@@ -983,15 +1072,15 @@ class Paradox():
                     flag=True)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_full',
+                    property='armfull',
                     flag=False)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_sleep',
+                    property='armsleep',
                     flag=False)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_stay',
+                    property='armstay',
                     flag=True)
             elif subevent_number == 4:  #Arm in sleep mode
                 self.update_partition_property(
@@ -1000,15 +1089,15 @@ class Paradox():
                     flag=True)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_full',
+                    property='armfull',
                     flag=False)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_sleep',
+                    property='armsleep',
                     flag=True)
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm_stay',
+                    property='armstay',
                     flag=False)
         elif event_number == 35:  #Zone bypass
             self.toggle_zone_property(subevent_number, property='bypass')
@@ -1017,7 +1106,7 @@ class Paradox():
                 subevent_number, property='alarm', flag=event_number == 36)
         elif event_number in (37, 39):  #Zone fire alarm
             self.update_zone_property(
-                subevent_number, property='fire_alarm', flag=event_number == 37)
+                subevent_number, property='firealarm', flag=event_number == 37)
         elif event_number == 41:  #Zone shutdown?
             self.update_zone_property(
                 subevent_number, property='shutdown', flag=True)
@@ -1027,18 +1116,18 @@ class Paradox():
         elif event_number in (49, 50):  #Zone battery
             self.update_zone_property(
                 subevent_number,
-                property='low_battery',
+                property='lowbattery',
                 flag=event_number == 49)
-        elif event_number in (51, 52):  #Zone supervision_trouble
+        elif event_number in (51, 52):  #Zone supervisiontrouble
             self.update_zone_property(
                 subevent_number,
-                property='supervision_trouble',
+                property='supervisiontrouble',
                 flag=event_number == 51)
-        elif event_number in (53, 54):  #Wireless module supervision_trouble
+        elif event_number in (53, 54):  #Wireless module supervisiontrouble
             if subevent_number > 0 and subevent_number <= self.outputs:
                 self.update_output_property(
                     subevent_number,
-                    property='supervision_trouble',
+                    property='supervisiontrouble',
                     flag=event_number == 53)
         elif event_number in (55, 56):  #Wireless module tamper trouble
             if subevent_number > 0 and subevent_number <= self.outputs:
@@ -1048,14 +1137,14 @@ class Paradox():
             logger.debug("Nothing special to do for this event.")
 
     def process_start_communication_response(self, message):
-        """Process start communication response to fetch panel_id etc."""
+        """Process start communication response to fetch panelid etc."""
         self.update_panel(
-            panel_id=message[4],
-            firmware_version=message[5],
-            firmware_revision=message[6],
-            firmware_build=message[7],
-            programmed_panel_id_a=message[8],
-            programmed_panel_id_b=message[9])
+            panelid=message[4],
+            firmwareversion=message[5],
+            firmwarerevision=message[6],
+            firmwarebuild=message[7],
+            programmedpanelida=message[8],
+            programmedpanelidb=message[9])
 
     def process_initialize_communication_response(self, message):
         """Nothing to do as for WinLoad the message contains no useful info."""
@@ -1095,6 +1184,8 @@ class Paradox():
             )
             self.connection.reset_input_buffer()
             return
+        self.messagetime=datetime.now()
+        self.homie_publish_property(node_id='panel', property_id='messagetime', datatype='string', value=self.timestamp_str(self.messagetime))
         if high_nibble != 15:
             self.process_low_nibble(low_nibble)
         if high_nibble == 0:  #Start communication response
@@ -1195,7 +1286,7 @@ class Paradox():
         message = b'\x50\x00\x0e\x52\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
         reply = self.send_and_process_reply(message)
 
-        self.software_connected = True
+        self.softwareconnected = True
         self.connection.reset_input_buffer()
         return True
 
