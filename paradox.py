@@ -1351,8 +1351,9 @@ class Paradox():
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
                     label == None
-                if ord(label[0]) == 0 or len(label) == 0:
-                    label = None
+                if label != None:
+                    if ord(label[0]) == 0 or len(label) == 0:
+                        label = None
                 self.update_zone_label(zone_number=i * 2 + 1, label=label)
                 try:
                     label = reply[20:36].decode("utf-8").strip()
