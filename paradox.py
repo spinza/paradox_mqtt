@@ -326,6 +326,7 @@ class Paradox():
         self.homie_init_partitions()
         self.homie_init_outputs()
         self.homie_init_zones()
+        self.homie_init_last_zone_event()
 
         # device ready
         self.homie_publish_device_state('ready')
@@ -345,6 +346,7 @@ class Paradox():
             nodes=nodes+','+self.output_data[i]['machine_label']
         for i in range(1, self.zones + 1):
             nodes=nodes+','+self.zone_data[i]['machine_label']
+        nodes=nodes+',lastzoneevent'
         self.homie_publish(topic, nodes)
         topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, '$extensions')
         self.homie_publish(topic, '')
@@ -512,6 +514,24 @@ class Paradox():
             self.homie_publish_property(node_id=node_id, property_id='tamper', datatype='boolean', value=self.zone_data[i]['tamper'])
             self.homie_publish_property(node_id=node_id, property_id='lowbattery', datatype='boolean', value=self.zone_data[i]['lowbattery'])
             self.homie_publish_property(node_id=node_id, property_id='supervisiontrouble', datatype='boolean', value=self.zone_data[i]['supervisiontrouble'])
+
+    def homie_init_last_zone_event(self):
+        self.homie_init_node(node_id='lastzoneevent', name='Last Zone Event',properties='zone,label,property,state,time')
+        self.homie_init_property(node_id='lastzoneevent', property_id='zone', name='Zone', datatype='string')
+        self.homie_init_property(node_id='lastzoneevent', property_id='label', name='Zone Name', datatype='string')
+        self.homie_init_property(node_id='lastzoneevent', property_id='property', name='Zone Property', datatype='string')
+        self.homie_init_property(node_id='lastzoneevent', property_id='state', name='Zone Property State', datatype='boolean')
+        self.homie_init_property(node_id='lastzoneevent', property_id='time', name='Event Time', datatype='string')
+
+
+    def homie_publish_last_zone_event(self, zone_number, property):
+        if self.zone_data[zone_number][property] != None:
+            self.homie_publish_property(node_id='lastzoneevent', property_id='zone', datatype='string', value=self.zone_data[zone_number]['machine_label'])
+            self.homie_publish_property(node_id='lastzoneevent', property_id='label', datatype='string', value=self.zone_data[zone_number]['label'])
+            self.homie_publish_property(node_id='lastzoneevent', property_id='property', datatype='string', value=property)
+            self.homie_publish_property(node_id='lastzoneevent', property_id='state', datatype='boolean', value=self.zone_data[zone_number][property])
+            self.homie_publish_property(node_id='lastzoneevent', property_id='time', datatype='string', value=self.timestamp_str())
+
 
     def update_bell(self, bell):
         if bell != self.bell:
@@ -737,6 +757,7 @@ class Paradox():
                     logger.info('Zone {:d},"{}", Not {}.'.format(
                         zone_number, label, property))
                 self.homie_publish_property(node_id=self.zone_data[zone_number]['machine_label'], property_id=property, datatype='boolean', value=flag)
+                self.homie_publish_last_zone_event(zone_number, property)
 
     def toggle_zone_property(self, zone_number, property="open"):
         if zone_number > self.zones or zone_number < 1:
