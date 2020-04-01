@@ -1385,8 +1385,9 @@ class Paradox():
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
                     label == None
-                if ord(label[0]) == 0 or len(label) == 0:
-                    label = None
+                if label != None:
+                    if ord(label[0]) == 0 or len(label) == 0:
+                        label = None
                 self.update_user_label(user_number=i * 2 + 1, label=label)
                 try:
                     label = reply[20:36].decode("utf-8").strip()
@@ -1394,8 +1395,9 @@ class Paradox():
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
                     label == None
-                if ord(label[0]) == 0 or len(label) == 0:
-                    label = None
+                if label != None:
+                    if ord(label[0]) == 0 or len(label) == 0:
+                        label = None
                 self.update_user_label(user_number=i * 2 + 2, label=label)
         logger.info('Read user labels.')
 
@@ -1417,8 +1419,9 @@ class Paradox():
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
                     label == None
-                if ord(label[0]) == 0 or len(label) == 0:
-                    label = None
+                if label != None:
+                    if ord(label[0]) == 0 or len(label) == 0:
+                        label = None
                 self.update_partition_label(
                     partition_number=i * 2 + 1, label=label)
                 try:
@@ -1427,8 +1430,9 @@ class Paradox():
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
                     label == None
-                if ord(label[0]) == 0 or len(label) == 0:
-                    label = None
+                if label != None:
+                    if ord(label[0]) == 0 or len(label) == 0:
+                        label = None
                 self.update_partition_label(
                     partition_number=i * 2 + 2, label=label)
         logger.info('Read partition labels.')
@@ -1451,8 +1455,9 @@ class Paradox():
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
                     label == None
-                if ord(label[0]) == 0 or len(label) == 0:
-                    label = None
+                if label != None:
+                    if ord(label[0]) == 0 or len(label) == 0:
+                        label = None
                 self.update_output_label(output_number=i * 2 + 1, label=label)
                 try:
                     label = reply[20:36].decode("utf-8").strip()
@@ -1460,8 +1465,9 @@ class Paradox():
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
                     label == None
-                if ord(label[0]) == 0 or len(label) == 0:
-                    label = None
+                if label != None:
+                    if ord(label[0]) == 0 or len(label) == 0:
+                        label = None
                 self.update_output_label(output_number=i * 2 + 2, label=label)
         logger.info('Read output labels.')
 
