@@ -530,6 +530,7 @@ class Paradox():
             self.homie_publish_property(node_id='lastzoneevent', property_id='label', datatype='string', value=self.zone_data[zone_number]['label'])
             self.homie_publish_property(node_id='lastzoneevent', property_id='property', datatype='string', value=property)
             self.homie_publish_property(node_id='lastzoneevent', property_id='state', datatype='boolean', value=self.zone_data[zone_number][property])
+            sleep(0.1)
             self.homie_publish_property(node_id='lastzoneevent', property_id='time', datatype='string', value=self.timestamp_str())
 
 
