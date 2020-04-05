@@ -1029,10 +1029,10 @@ class Paradox():
         logger.info("partition_number: {:d}, event: {}, subevent {}".format(
             partition_number, event, subevent))
         #self.publish_raw_event(partition_number, event_number, subevent_number)
-
-        if ord(label[0]) == 0 or len(label) == 0:
-            label = None
-        else:
+        if label != None:
+            if ord(label[0]) == 0 or len(label) == 0:
+                label = None
+        if label != None:
             self.update_label(
                 partition_number=partition_number,
                 subevent_number=subevent_number,
@@ -1385,7 +1385,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
