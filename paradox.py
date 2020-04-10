@@ -1351,7 +1351,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
@@ -1361,7 +1361,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
@@ -1395,7 +1395,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
@@ -1419,7 +1419,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
@@ -1430,7 +1430,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
@@ -1455,7 +1455,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
@@ -1465,7 +1465,7 @@ class Paradox():
                 except:
                     logger.error("Could not extract label from message {}.".
                                  format(reply))
-                    label == None
+                    label = None
                 if label != None:
                     if ord(label[0]) == 0 or len(label) == 0:
                         label = None
