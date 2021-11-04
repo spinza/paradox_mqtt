@@ -1457,7 +1457,9 @@ class Paradox():
                                  format(reply))
                     label = None
                 if label != None:
-                    if ord(label[0]) == 0 or len(label) == 0:
+                    if type(label) != "str":
+                        label = None
+                    elif len(label) == 0:
                         label = None
                 self.update_output_label(output_number=i * 2 + 1, label=label)
                 try:
@@ -1467,7 +1469,9 @@ class Paradox():
                                  format(reply))
                     label = None
                 if label != None:
-                    if ord(label[0]) == 0 or len(label) == 0:
+                    if type(label) != "str":
+                        label = None
+                    elif len(label) == 0:
                         label = None
                 self.update_output_label(output_number=i * 2 + 2, label=label)
         logger.info('Read output labels.')
