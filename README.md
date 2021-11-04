@@ -19,7 +19,14 @@ Improvements over the above scripts:
 
 # Install
 
-Clone the repository and copy the config_sample.py to config.py and uncomment the settings you wish to change. The commented values represent the default values.
+1. Clone the repository
+2. `cd` into the project folder
+3. Copy the config_sample.py to config.py and uncomment the settings you wish to change. The commented values represent the default values.
+4. Create a virtual enivornment with `python3 -m venv venv`
+5. Activate it with `source venv/bin/activate`
+6. Install requirement with `pip install -r requirements.txt`
+7. Run with `python main.py`.
+8. Use the supplied `paradox_mqtt.service` to setup a service to start this automatically.
 
 # MQTT Topics
 

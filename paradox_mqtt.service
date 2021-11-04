@@ -9,7 +9,7 @@ User=paradox
 Group=paradox
 WorkingDirectory=/opt/paradox_mqtt/
 PermissionsStartOnly=true
-ExecStart=/usr/bin/python3 /opt/paradox_mqtt/main.py
+ExecStart=/opt/paradox_mqtt/venv/bin/python /opt/paradox_mqtt/main.py
 # Shutdown delay in seconds, before process is tried to be killed with KILL (if configured)
 TimeoutStopSec=20
 
