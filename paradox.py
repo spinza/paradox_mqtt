@@ -306,12 +306,6 @@ class Paradox():
             sleep(0.1)
         return None
 
-    def boolean_ON_OFF_OLD(self, b):
-        if b:
-            return "ON"
-        else:
-            return "OFF"
-
     def timestamp_str(self,date=datetime.now()):
         return "{}".format(datetime.now().isoformat())
 
@@ -582,46 +576,6 @@ class Paradox():
             format(input_dc_voltage, power_supply_dc_voltage,
                    battery_dc_voltage))
 
-    def publish_partition_event_OLD(self, partition_number, property):
-        if self.partition_data[partition_number][property] != None:
-            partition_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
-                'partition')
-            label_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
-                                               MQTT_EVENTS_TOPIC,
-                                               MQTT_PARTITION_TOPIC, 'label')
-            property_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
-                'property')
-            state_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
-                                               MQTT_EVENTS_TOPIC,
-                                               MQTT_PARTITION_TOPIC, 'state')
-            timestamp_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_PARTITION_TOPIC,
-                'timestamp')
-            self.mqtt.publish(
-                partition_topic,
-                self.partition_data[partition_number]['machine_label'])
-            self.mqtt.publish(label_topic,
-                              self.partition_data[partition_number]['label'])
-            self.mqtt.publish(property_topic, property)
-            self.mqtt.publish(
-                state_topic,
-                self.boolean_ON_OFF(
-                    self.partition_data[partition_number][property]))
-            self.mqtt.publish(timestamp_topic, self.timestamp_str())
-
-    def publish_partition_property_OLD(self, partition_number, property="arm"):
-        if self.partition_data[partition_number][property] != None:
-            topic = "{}/{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_STATES_TOPIC, MQTT_PARTITION_TOPIC,
-                self.partition_data[partition_number]['machine_label'],
-                property)
-            self.mqtt.publish(
-                topic,
-                self.boolean_ON_OFF(
-                    self.partition_data[partition_number][property]))
-
     def update_partition_property(self,
                                   partition_number,
                                   property="arm",
@@ -645,39 +599,6 @@ class Paradox():
                 self.homie_publish_property(node_id=self.partition_data[partition_number]['machine_label'], property_id=property, datatype='boolean', value=flag)
                 if property == 'arm' and flag == False:
                     self.clear_on_disarm()
-
-    def publish_output_event_OLD(self, output_number, property):
-        if self.output_data[output_number][property] != None:
-            output_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC, 'output')
-            label_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC, 'label')
-            property_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
-                                                  MQTT_EVENTS_TOPIC,
-                                                  MQTT_OUTPUT_TOPIC, 'property')
-            state_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC, 'state')
-            timestamp_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_OUTPUT_TOPIC,
-                'timestamp')
-            self.mqtt.publish(output_topic,
-                              self.output_data[output_number]['machine_label'])
-            self.mqtt.publish(label_topic,
-                              self.output_data[output_number]['label'])
-            self.mqtt.publish(property_topic, property)
-            self.mqtt.publish(
-                state_topic,
-                self.boolean_ON_OFF(self.output_data[output_number][property]))
-            self.mqtt.publish(timestamp_topic, self.timestamp_str())
-
-    def publish_output_property_OLD(self, output_number, property=None):
-        if self.output_data[output_number][property] != None:
-            topic = "{}/{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_STATES_TOPIC, MQTT_OUTPUT_TOPIC,
-                self.output_data[output_number]['machine_label'], property)
-            self.mqtt.publish(
-                topic,
-                self.boolean_ON_OFF(self.output_data[output_number][property]))
 
     def update_output_property(self, output_number, property=None, flag=None):
         if output_number > self.outputs or output_number < 1:
@@ -710,37 +631,6 @@ class Paradox():
                     output_number, label))
             self.eventmap.setoutputLabel(
                 output_number, self.output_data[output_number]['machine_label'])
-
-    def publish_zone_event_OLD(self, zone_number, property):
-        if self.zone_data[zone_number][property] != None:
-            zone_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC, 'zone')
-            label_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC, 'label')
-            property_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC, 'property')
-            state_topic = "{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_ZONE_TOPIC, 'state')
-            timestamp_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
-                                                   MQTT_EVENTS_TOPIC,
-                                                   MQTT_ZONE_TOPIC, 'timestamp')
-            self.mqtt.publish(zone_topic,
-                              self.zone_data[zone_number]['machine_label'])
-            self.mqtt.publish(label_topic, self.zone_data[zone_number]['label'])
-            self.mqtt.publish(property_topic, property)
-            self.mqtt.publish(
-                state_topic,
-                self.boolean_ON_OFF(self.zone_data[zone_number][property]))
-            self.mqtt.publish(timestamp_topic, self.timestamp_str())
-
-    def publish_zone_property_OLD(self, zone_number, property="open"):
-        if self.zone_data[zone_number][property] != None:
-            topic = "{}/{}/{}/{}/{}".format(
-                MQTT_BASE_TOPIC, MQTT_STATES_TOPIC, MQTT_ZONE_TOPIC,
-                self.zone_data[zone_number]['machine_label'], property)
-            self.mqtt.publish(
-                topic,
-                self.boolean_ON_OFF(self.zone_data[zone_number][property]))
 
     def update_zone_property(self, zone_number, property="open", flag=None):
         if zone_number > self.zones or zone_number < 1:
@@ -966,35 +856,6 @@ class Paradox():
         else:
             logger.error(
                 "Can't process this keep alive response:{}".format(message))
-
-    def publish_raw_event_OLD(self, partition_number, event_number,
-                          subevent_number):
-        event, subevent = self.eventmap.getEventDescription(event_number,
-                                                            subevent_number)
-        partition = self.partition_data[partition_number]['machine_label']
-        partition_topic = "{}/{}/{}/{}".format(
-            MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_RAW_TOPIC,
-            'partition_number')
-        event_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC,
-                                           MQTT_RAW_TOPIC, 'event_number')
-        subevent_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC,
-                                              MQTT_EVENTS_TOPIC, MQTT_RAW_TOPIC,
-                                              'subevent_number')
-        self.mqtt.publish(partition_topic, partition_number)
-        self.mqtt.publish(event_topic, event_number)
-        self.mqtt.publish(subevent_topic, subevent_number)
-        partition_topic = "{}/{}/{}/{}".format(
-            MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_RAW_TOPIC, 'partition')
-        event_topic = "{}/{}/{}/{}".format(MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC,
-                                           MQTT_RAW_TOPIC, 'event')
-        subevent_topic = "{}/{}/{}/{}".format(
-            MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_RAW_TOPIC, 'subevent')
-        self.mqtt.publish(partition_topic, partition)
-        self.mqtt.publish(event_topic, event)
-        self.mqtt.publish(subevent_topic, subevent)
-        timestamp_topic = "{}/{}/{}/{}".format(
-            MQTT_BASE_TOPIC, MQTT_EVENTS_TOPIC, MQTT_RAW_TOPIC, 'timestamp')
-        self.mqtt.publish(topic=timestamp_topic, payload=self.timestamp_str())
 
     def process_live_event_command(self, message):
         logger.debug("Processing live event command...")
