@@ -24,11 +24,10 @@ class Serial_Connection():
     def connect(self):
         """Connect to serial port."""
         logger.debug("Connecting to serial port...")
-        self.connection = serial.Serial(
-            port=self.port,
-            baudrate=self.baudrate,
-            timeout=self.timeout,
-            rtscts=self.rtscts)
+        self.connection = serial.Serial(port=self.port,
+                                        baudrate=self.baudrate,
+                                        timeout=self.timeout,
+                                        rtscts=self.rtscts)
         try:
             self.connection.open()
             logger.debug("Connected to serial port.")

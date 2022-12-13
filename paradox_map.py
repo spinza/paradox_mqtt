@@ -34,7 +34,7 @@ class ParadoxMG5050Registers():
 
     zoneLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x00\x10",
             "Receive": {
@@ -263,7 +263,7 @@ class ParadoxMG5050Registers():
 
     outputLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x02\x10",
             "Receive": {
@@ -380,7 +380,7 @@ class ParadoxMG5050Registers():
 
     partitionLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x03\x10",
             "Receive": {
@@ -399,7 +399,7 @@ class ParadoxMG5050Registers():
 
     userLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x03\x30",
             "Receive": {
@@ -628,7 +628,7 @@ class ParadoxMG5050Registers():
 
     busModuleLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x05\x30",
             "Receive": {
@@ -738,7 +738,7 @@ class ParadoxMG5050Registers():
 
     wirelessRepeaterLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x06\x10",
             "Receive": {
@@ -757,7 +757,7 @@ class ParadoxMG5050Registers():
 
     wirelessKeypadLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x06\x30",
             "Receive": {
@@ -818,7 +818,7 @@ class ParadoxMG5050Registers():
 
     siteNameLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x06\xb0",
             "Receive": {
@@ -830,7 +830,7 @@ class ParadoxMG5050Registers():
 
     wirelessSirenLabel = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "Send": "\x50\x00\x06\xd0",
             "Receive": {
@@ -863,7 +863,7 @@ class ParadoxMG5050Registers():
 
     controlOutput = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "ON": "\x40\x00\x30\x00",
             "OFF": "\x40\x00\x31\x00"
@@ -932,7 +932,7 @@ class ParadoxMG5050Registers():
 
     controlAlarm = {
         "Header":
-        "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
+            "\xaa\x25\x00\x04\x08\x00\x00\x14\xee\xee\xee\xee\xee\xee\xee\xee",
         1: {
             "ARM": "\x40\x00\x04\x00",
             "DISARM": "\x40\x00\x05\x00",
@@ -1567,7 +1567,7 @@ class ParadoxMG5050EventMap():
                 eg], ParadoxMG5050EventMap.subEventGroupMap[eg][seg]
         except KeyError:
             logger.error("No ParadoxMap for: eg=%d \t seg=%d" % (eg, seg))
-            return "-","-"
+            return "-", "-"
 
     @staticmethod
     def getLabelTypeDescription(lt):
