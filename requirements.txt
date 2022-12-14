@@ -1,2 +1,4 @@
 paho-mqtt==1.6.1
+pkg_resources==0.0.0
 pyserial==3.5
+yapf==0.32.0
