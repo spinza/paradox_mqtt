@@ -102,11 +102,7 @@ class Paradox():
             partition['machine_label'] = partition['label'].lower().replace(
                 ' ', '')
             partition['alarm'] = False
-            partition['arm'] = None
-            partition['armfull'] = None
-            partition['armsleep'] = None
-            partition['armstay'] = None
-            partition['armstate'] = 'disarmed'
+            partition['armstate'] = None
             self.partition_data.append(partition)
 
         #Bell on?
@@ -197,31 +193,37 @@ class Paradox():
         else:
             return None
 
-    def homie_partition_property_set(self, partition_number, property, message):
-        flag = self.homie_message_true_false(
-            str(message.payload.decode("utf-8")))
-        if flag == None:
-            logger.error(
-                "Invalid message body. Should be true/false. {}".format(
-                    str(message.payload.decode("utf-8"))))
+    def homie_message_integer(self, message):
+        if message.isdigit():
+            return int(message)
         else:
-            if property in ["arm", "armfull", "armstay", "armsleep"]:
-                if flag:
-                    if property in ['arm', 'armfull']:
-                        self.control_alarm(partition_number=partition_number,
-                                           state='ARM')
-                    elif property == 'armstay':
-                        self.control_alarm(partition_number=partition_number,
-                                           state='STAY')
-                    elif property == 'armsleep':
-                        self.control_alarm(partition_number=partition_number,
-                                           state='SLEEP')
-                else:
+            return None
+
+    def homie_partition_property_set(self, partition_number, property, message):
+        if property in ["armstate"]:
+            value = self.homie_message_integer(
+                str(message.payload.decode("utf-8")))
+            if value == None:
+                logger.error(
+                    "Invalid message body. Should be true/false. {}".format(
+                        str(message.payload.decode("utf-8"))))
+            else:
+                if value == 3:
+                    self.control_alarm(partition_number=partition_number,
+                                       state='ARM')
+                elif value == 1:
+                    self.control_alarm(partition_number=partition_number,
+                                       state='STAY')
+                elif value == 2:
+                    self.control_alarm(partition_number=partition_number,
+                                       state='SLEEP')
+                elif value == 0:
                     self.control_alarm(partition_number=partition_number,
                                        state='DISARM')
-            else:
-                logger.error(
-                    "Partition property {} not settable.".format(property))
+                else:
+                    logger.error("amrstate value {} is invalid.".format(value))
+        else:
+            logger.error("Partition property {} not settable.".format(property))
 
     def homie_output_property_set(self, output_number, property, message):
         flag = self.homie_message_true_false(
@@ -631,40 +633,19 @@ class Paradox():
     def homie_init_partitions(self):
         for i in range(1, 2 + 1):
             node_id = self.partition_data[i]['machine_label']
-            self.homie_init_node(
-                node_id=node_id,
-                name=self.partition_data[i]['label'],
-                type=None,
-                properties='alarm,arm,armfull,armsleep,armstay')
+            self.homie_init_node(node_id=node_id,
+                                 name=self.partition_data[i]['label'],
+                                 type=None,
+                                 properties='alarm,armstate')
             self.homie_init_property(node_id=node_id,
                                      property_id='alarm',
                                      name='Alarm',
                                      datatype='boolean',
                                      settable=False)
             self.homie_init_property(node_id=node_id,
-                                     property_id='arm',
-                                     name='Arm',
-                                     datatype='boolean',
-                                     settable=True)
-            self.homie_init_property(node_id=node_id,
-                                     property_id='armfull',
-                                     name='Arm Full',
-                                     datatype='boolean',
-                                     settable=True)
-            self.homie_init_property(node_id=node_id,
-                                     property_id='armsleep',
-                                     name='Arm Sleep',
-                                     datatype='boolean',
-                                     settable=True)
-            self.homie_init_property(node_id=node_id,
-                                     property_id='armstay',
-                                     name='Arm Stay',
-                                     datatype='boolean',
-                                     settable=True)
-            self.homie_init_property(node_id=node_id,
                                      property_id='armstate',
                                      name='Arm State',
-                                     datatype='string',
+                                     datatype='integer',
                                      settable=True)
 
     def homie_publish_partitions(self):
@@ -674,27 +655,10 @@ class Paradox():
                                         property_id='alarm',
                                         datatype='boolean',
                                         value=self.partition_data[i]['alarm'])
-            self.homie_publish_property(node_id=node_id,
-                                        property_id='arm',
-                                        datatype='boolean',
-                                        value=self.partition_data[i]['arm'])
-            self.homie_publish_property(node_id=node_id,
-                                        property_id='armfull',
-                                        datatype='boolean',
-                                        value=self.partition_data[i]['armfull'])
-            self.homie_publish_property(
-                node_id=node_id,
-                property_id='armsleep',
-                datatype='boolean',
-                value=self.partition_data[i]['armsleep'])
-            self.homie_publish_property(node_id=node_id,
-                                        property_id='armstay',
-                                        datatype='boolean',
-                                        value=self.partition_data[i]['armstay'])
             self.homie_publish_property(
                 node_id=node_id,
                 property_id='armstate',
-                datatype='string',
+                datatype='integer',
                 value=self.partition_data[i]['armstate'])
 
     def homie_init_outputs(self):
@@ -946,53 +910,37 @@ class Paradox():
             .format(input_dc_voltage, power_supply_dc_voltage,
                     battery_dc_voltage))
 
-    def update_partition_armstate(self, partition_number):
-        if partition_number > 2 or partition_number < 0:
-            logger.error(
-                "Invalid partition_number {:d}".format(partition_number))
-            return
-        if self.partition_data[partition_number]['arm'] != True:
-            self.partition_data[partition_number]['armstate'] = 'disarmed'
-        elif self.partition_data[partition_number]['armfull'] == True:
-            self.partition_data[partition_number]['armstate'] = 'armed'
-        elif self.partition_data[partition_number]['armsleep'] == True:
-            self.partition_data[partition_number]['armstate'] = 'sleep'
-        elif self.partition_data[partition_number]['armstay'] == True:
-            self.partition_data[partition_number]['armstate'] = 'stay'
-        self.homie_publish_property(
-            node_id=self.partition_data[partition_number]['machine_label'],
-            property_id='armstate',
-            datatype='string',
-            value=self.partition_data[partition_number]['armstate'])
-
     def update_partition_property(self,
                                   partition_number,
-                                  property="arm",
-                                  flag=None):
+                                  property="armstate",
+                                  value=None):
         if partition_number > 2 or partition_number < 0:
             logger.error(
                 "Invalid partition_number {:d}".format(partition_number))
             return
-        if flag != None:
+        if value != None:
             if self.partition_data[partition_number][
                     property] == None or self.partition_data[partition_number][
-                        property] != flag:
+                        property] != value:
                 label = self.partition_data[partition_number]['label']
-                self.partition_data[partition_number][property] = flag
-                if flag:
-                    logger.info('Partition {:d},"{}", {}.'.format(
-                        partition_number, label, property))
-                else:
-                    logger.info('Partition {:d},"{}", Not {}.'.format(
-                        partition_number, label, property))
-                self.homie_publish_property(
-                    node_id=self.partition_data[partition_number]
-                    ['machine_label'],
-                    property_id=property,
-                    datatype='boolean',
-                    value=flag)
-                self.update_partition_armstate(partition_number)
-                if property == 'arm' and flag == False:
+                self.partition_data[partition_number][property] = value
+                logger.info('Partition {:d},"{}", {} = {}.'.format(
+                    partition_number, label, property, value))
+                if property in ["alarm"]:
+                    self.homie_publish_property(
+                        node_id=self.partition_data[partition_number]
+                        ['machine_label'],
+                        property_id=property,
+                        datatype='boolean',
+                        value=value)
+                elif property in ["armstate"]:
+                    self.homie_publish_property(
+                        node_id=self.partition_data[partition_number]
+                        ['machine_label'],
+                        property_id=property,
+                        datatype='integer',
+                        value=value)
+                if property == 'armstate' and value == 0:
                     self.clear_on_disarm()
 
     def update_output_property(self, output_number, property=None, flag=None):
@@ -1162,10 +1110,10 @@ class Paradox():
                 logger.info("Alarm deactivated.")
                 self.update_partition_property(partition_number=1,
                                                property='alarm',
-                                               flag=False)
+                                               value=False)
                 self.update_partition_property(partition_number=2,
                                                property='alarm',
-                                               flag=False)
+                                               value=False)
 
         if self.eventreporting != eventreporting:
             self.eventreporting = eventreporting
@@ -1245,23 +1193,27 @@ class Paradox():
                     arm = test_bit(message[17 + i * 4], 0)
                     arm_sleep = test_bit(message[17 + i * 4], 1)
                     arm_stay = test_bit(message[17 + i * 4], 2)
-                    arm_full = arm and not (arm_stay or arm_sleep)
-                    self.update_partition_property(
-                        partition_number=partition_number,
-                        property='arm',
-                        flag=arm)
-                    self.update_partition_property(
-                        partition_number=partition_number,
-                        property='armfull',
-                        flag=arm_full)
-                    self.update_partition_property(
-                        partition_number=partition_number,
-                        property='armsleep',
-                        flag=arm_sleep)
-                    self.update_partition_property(
-                        partition_number=partition_number,
-                        property='armstay',
-                        flag=arm_stay)
+                    if arm_stay:
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property='armstate',
+                            value=1)
+                    elif arm_sleep:
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property='armstate',
+                            value=2)
+                    elif arm:
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property='armstate',
+                            value=3)
+                    else:
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property='armstate',
+                            value=0)
+
             elif panel_status == 2:
                 #Zone Bypass Status
                 for i in range(0, self.zones - 1):
@@ -1333,39 +1285,27 @@ class Paradox():
                 self.update_partition_property(
                     partition_number=partition_number,
                     property='alarm',
-                    flag=True)
+                    value=True)
             elif subevent_number == 7:  #Alarm stopped
                 self.update_partition_property(
                     partition_number=partition_number,
                     property='alarm',
-                    flag=False)
+                    value=False)
             elif subevent_number == 11:  #Disarm partion
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm',
-                    flag=False)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armfull',
-                    flag=False)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armsleep',
-                    flag=False)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armstay',
-                    flag=False)
+                    property='armstate',
+                    value=0)
                 self.update_partition_property(
                     partition_number=partition_number,
                     property='alarm',
-                    flag=False)
+                    value=False)
                 self.clear_on_disarm()
             elif subevent_number == 12:  #Arm partion
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm',
-                    flag=True)
+                    property='armstate',
+                    value=3)
         elif event_number == 3:  #Bell status
             if subevent_number in (0, 1):
                 self.update_bell(subevent_number == 1)
@@ -1375,37 +1315,13 @@ class Paradox():
             if subevent_number == 3:  #Arm in stay mode
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm',
-                    flag=True)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armfull',
-                    flag=False)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armsleep',
-                    flag=False)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armstay',
-                    flag=True)
+                    property='armstate',
+                    value=1)
             elif subevent_number == 4:  #Arm in sleep mode
                 self.update_partition_property(
                     partition_number=partition_number,
-                    property='arm',
-                    flag=True)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armfull',
-                    flag=False)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armsleep',
-                    flag=True)
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armstay',
-                    flag=False)
+                    property='armstate',
+                    value=2)
         elif event_number == 35:  #Zone bypass
             self.toggle_zone_property(subevent_number, property='bypass')
         elif event_number in (36, 38):  #Zone alarm
