@@ -1302,10 +1302,9 @@ class Paradox():
                     value=False)
                 self.clear_on_disarm()
             elif subevent_number == 12:  #Arm partion
-                self.update_partition_property(
-                    partition_number=partition_number,
-                    property='armstate',
-                    value=3)
+                # This is indication of arming of partition but not which type.
+                # Ignore this sub event as others will indicate the type
+                pass
         elif event_number == 3:  #Bell status
             if subevent_number in (0, 1):
                 self.update_bell(subevent_number == 1)
