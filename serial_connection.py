@@ -2,16 +2,11 @@
 import logging
 import serial
 
-logger = logging.getLogger('paradox_mqtt').getChild(__name__)
+logger = logging.getLogger("paradox_mqtt").getChild(__name__)
 
 
-class Serial_Connection():
-
-    def __init__(self,
-                 port='/dev/ttyUSB0',
-                 baudrate=9600,
-                 timeout=5,
-                 rtscts=False):
+class Serial_Connection:
+    def __init__(self, port="/dev/ttyUSB0", baudrate=9600, timeout=5, rtscts=False):
         """Initialise Serial_Connection."""
         logger.debug("Initialising Serial_Connection...")
         self.connection = None
@@ -24,10 +19,12 @@ class Serial_Connection():
     def connect(self):
         """Connect to serial port."""
         logger.debug("Connecting to serial port...")
-        self.connection = serial.Serial(port=self.port,
-                                        baudrate=self.baudrate,
-                                        timeout=self.timeout,
-                                        rtscts=self.rtscts)
+        self.connection = serial.Serial(
+            port=self.port,
+            baudrate=self.baudrate,
+            timeout=self.timeout,
+            rtscts=self.rtscts,
+        )
         try:
             self.connection.open()
             logger.debug("Connected to serial port.")

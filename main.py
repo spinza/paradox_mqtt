@@ -2,13 +2,13 @@
 import logging
 from config_defaults import *
 from config import *
+
 # create logger
-logger = logging.getLogger('paradox_mqtt')
+logger = logging.getLogger("paradox_mqtt")
 logger.setLevel(LOGGING_LEVEL_CONSOLE)
 
 # create formatter and add it to the handlers
-formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
 # create file handler which logs even debug messages
 if LOGGING_FILE != None:
