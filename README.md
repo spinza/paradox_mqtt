@@ -16,6 +16,7 @@ Improvements over the above scripts:
 * Handles more messages from the alarm.
 * More zone states (including alarm, bpass, fire_alarm etc.)
 * More logic for tracking zone/alarm/partition states.
+* Publishes in [Homie standard](https://homieiot.github.io/)
 
 # Install
 
@@ -32,42 +33,28 @@ Improvements over the above scripts:
 
 The script publishes alarm details under various topics (as per defaults):
 
-## State Channels
+This publishes on the Homie standard.
 
-* `paradox_mqtt/states/zones/[machine label]` - Details of each zone.
-* `paradox_mqtt/states/outputs/[machine label]` - Details of each output.
-* `paradox_mqtt/states/partitions/[machine label]` - Details of each partition.
-* `paradox_mqtt/states` - other alarm status items.
+Some  high level topics are published:
 
-`[machine label]` is the label of the zone/ouput/etc. but with spaces replaced by underscores.
+* `homie/alarm/panel/` contains panel details such as battery states etc.
+* `homie/alarm/panel/alarm/` is the alarm state
+* `homie/alarm/partition1/` contains the partition 1 arm states and alarm states.
+* `homie/alarm/partition2/` contains the partition 2 arm states and alarm states.
+* `homie/alarm/troubleindicators/` contains trouble indicators.
+* `homie/alarm/moduletroubleindicators/` contains module trouble indicators.
+* `homie/alarm/output1/` contains output details for output 1. 
+* `homie/alarm/zone1/` contains zone details for zone 1.
+* `homie/alarm/zone1/open` contain is the open status of a zone (e.g. movement for PIRs).
+* `homie/alarm/zone1/bypass` contains whether zone is bypassed.
+* `homie/alarm/zone1/alarm` whehter the zone is causing an alarm.
+* `homie/alarm/zone1/lowbattery` whether the zone battery is low (for wireless battery powered PIRs)
 
-## Control Channels
+Settable topics contain the property `settable`.  For example `homie/alarm/zone1/bypass/$settable true` indicates that we can publish to this topic to set a value (and consequently bypass the zone).
 
-Control various zones/partitions/outputs via publishing messages to:
-* `paradox_mqtt/control/zones/[machine label]`                                                                                                                                                              
-* `paradox_mqtt/control/outputs/[machine label]`
-* `paradox_mqtt/control/partitions/[machine label]`
+Arming can be done in several ways but perhaps the easies is setting `homie/alarm/partition1/armstate` to an integer as follows:
 
-## Partition controls                                    
-
-Control a partition by publishing to `ON` or `OFF` to `paradox_mqtt/control/partitions/[machine label]/[property]`. 
-
-`[property]` can be one of:
-* `arm` - arms or disarms the alarm.  By default arms on fully armed.
-* `arm_full`  - arms of disarms the alarm.  Arming does fully armed.
-* `arm_sleep` - arms the alarm on sleep mode (or disarms).
-* `arm_stay` - arms the alarm in sleep mode (or disarms).
-
-## Zone controls
-
-Control a zone by publishing to `ON` or `OFF` to `paradox_mqtt/control/zones/[machine label]/bypass`. This is not yet implemented.
-
-## Output controls
-
-Control an output by publishing to `ON` or `OFF` to `paradox_mqtt/control/outputs/[machine label]/[property]`.
-
-`[property]` can be one of: 
-* `on` - activate or disable the output.
-* `pules` - activates the output in pulses.
-
-
+* 0 - Disarmed
+* 1 - Stay Armed
+* 2 - Sleep Armed
+* 3 - Armed
