@@ -30,8 +30,9 @@ UPDATE_ALARM_TIME_DIFF_MINUTES = (
 MQTT_HOST = "localhost"
 MQTT_PORT = 1883
 MQTT_KEEPALIVE = 60
-MQTT_BIND_ADDRESS = ""
 MQTT_CLIENT_ID = "paradox_mqtt"
+MQTT_USERNAME = None
+MQTT_PASSWORD = None
 
 # Homie Standard Items
 # https://homieiot.github.io/specification/spec-core-v4_0_0/

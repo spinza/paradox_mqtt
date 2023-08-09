@@ -28,7 +28,9 @@ import logging
 # MQTT_HOST='localhost'
 # MQTT_PORT=1883
 # MQTT_KEEPALIVE=60
-# MQTT_BIND_ADDRESS=""
+# MQTT user and password below only set if used
+# MQTT_USERNAME = "user"
+# MQTT_PASSWORD = "password"
 
 # MQTT Topics
 # MQTT_PUBLISH_ALL_SECONDS = 60

@@ -41,5 +41,5 @@ while not connected:
 logger.info("Connected to serial port.")
 paradox = paradox.Paradox(connection=connection)
 logger.info("Connected to alarm.")
-paradox.mqtt_connect()
+paradox.mqtt_connect(host=MQTT_HOST, port=MQTT_PORT, username=MQTT_USERNAME, password=MQTT_PASSWORD)
 paradox.main_loop()
