@@ -24,7 +24,10 @@ class Paradox:
         logger.debug("Initialising Paradox class...")
         # mqtt client
         self.mqtt = mqtt.Client(client_id=MQTT_CLIENT_ID)
+        self.mqtt.on_connect = self.on_mqtt_connect
+        self.mqtt.on_disconnect = self.on_mqtt_disconnect
         self.mqtt.on_message = self.homie_message
+
         # MQTT Will
         topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, "$state")
         self.mqtt.will_set(
@@ -263,7 +266,33 @@ class Paradox:
         mod = __import__("paradox_map", fromlist=[self.alarmregmap + "Registers"])
         self.registermap = getattr(mod, self.alarmregmap + "Registers")
 
+        # connect to MQTT
+        self.mqtt_connect(
+            host=MQTT_HOST,
+            port=MQTT_PORT,
+            username=MQTT_USERNAME,
+            password=MQTT_PASSWORD,
+        )
+
+        # flag Homie init
+        self.do_homie_init = True
+
         logger.debug("Initialised Paradox class.")
+
+    def on_mqtt_connect(self, client, userdata, flags, rc):
+        if rc == 0:
+            logger.info("Connected to MQTT...")
+            self.mqtt.subscribe(
+                "{}/{}/{}/{}/{}/{}".format(
+                    HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, "+", "+", "set", "#"
+                )
+            )
+            self.do_homie_init = True
+        else:
+            logger.info("Connectetion to MQTT failed return code of {}.".format(rc))
+
+    def on_mqtt_disconnect(self, client, userdata, rc):
+        logger.info("MQTT was disconnected with return code of {}".format(rc))
 
     def mqtt_connect(
         self,
@@ -277,14 +306,17 @@ class Paradox:
         logger.info("Connecting to mqtt.")
         if username != None and password != None:
             self.mqtt.username_pw_set(username=username, password=password)
-        self.mqtt.connect(host, port, keepalive, bind_address)
+
+        error = True
+        while error:
+            try:
+                self.mqtt.connect(host, port, keepalive, bind_address)
+                error = False
+            except Exception as e:
+                logger.error("{} for MQTT.  Retrying...".format(e))
+                error = True
+                sleep(5)
         self.mqtt.loop_start()
-        self.mqtt.subscribe(
-            "{}/{}/{}/{}/{}/{}".format(
-                HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, "+", "+", "set", "#"
-            )
-        )
-        logger.info("Connected to mqtt.")
 
     def homie_publish(self, topic, message):
         self.mqtt.publish(
@@ -447,7 +479,9 @@ class Paradox:
             if datetime.now() > keep_alive_time + timedelta(seconds=KEEP_ALIVE_SECONDS):
                 self.keep_alive()
                 keep_alive_time = datetime.now()
-            if datetime.now() > homie_init_time + timedelta(seconds=HOMIE_INIT_SECONDS):
+            if self.do_homie_init or datetime.now() > homie_init_time + timedelta(
+                seconds=HOMIE_INIT_SECONDS
+            ):
                 self.homie_init()
                 homie_init_time = datetime.now()
             if datetime.now() > homie_publish_all_time + timedelta(
@@ -494,6 +528,7 @@ class Paradox:
 
         # device ready
         self.homie_publish_device_state("ready")
+        self.do_homie_init = False
 
     def homie_init_device(self):
         topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, "$homie")
