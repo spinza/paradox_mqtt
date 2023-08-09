@@ -57,116 +57,104 @@ class Paradox:
         # Trouble indicators - not implemented yet
         # Order below is important
         self.trouble_indicators = {
-            0: {
-                "machine_label": "natrouble",
-                "name": "N/A Trouble",
-                "status": False
-                },
+            0: {"machine_label": "natrouble", "name": "N/A Trouble", "status": False},
             1: {
                 "machine_label": "powerfailure",
                 "name": "Power Failure",
-                "status": False
-                },
+                "status": False,
+            },
             2: {
                 "machine_label": "batteryfailure",
                 "name": "Battery Failure",
-                "status": False
-                },
+                "status": False,
+            },
             3: {
                 "machine_label": "auxcurrentoverload",
                 "name": "Aux Current Overload",
-                "status": False
-                },
+                "status": False,
+            },
             4: {
                 "machine_label": "bellcurrentoverload",
                 "name": "Bell Current Overload",
-                "status": False
-                },
-            5: {   
+                "status": False,
+            },
+            5: {
                 "machine_label": "belldisconnected",
                 "name": "Bell Disconnected",
-                "status": False
-                },
-            6: {   
-                "machine_label": "clockloss",
-                "name": "Clock Loss",
-                "status": False
-                },
-            7: {   
+                "status": False,
+            },
+            6: {"machine_label": "clockloss", "name": "Clock Loss", "status": False},
+            7: {
                 "machine_label": "firelooptrouble",
                 "name": "Fire Loop Trouble",
-                "status": False
-                },
-            8: {   
+                "status": False,
+            },
+            8: {
                 "machine_label": "failuretocommunicatetelephone1",
                 "name": "Failure to Communicate Telephone #1",
-                "status": False
-                },
-            9: {   
+                "status": False,
+            },
+            9: {
                 "machine_label": "failuretocommunicatetelephone2",
                 "name": "Failure to Communicate Telephone #2",
-                "status": False
-                },
-            11: {   
+                "status": False,
+            },
+            11: {
                 "machine_label": "failuretocommunicatevoice",
                 "name": "Failure to Communcate Voice Report",
-                "status": False
-                },
-            12: {   
-                "machine_label": "rfjamming",
-                "name": "RF Jamming",
-                "status": False
-                },
-            13: {   
+                "status": False,
+            },
+            12: {"machine_label": "rfjamming", "name": "RF Jamming", "status": False},
+            13: {
                 "machine_label": "gsmrfjamming",
                 "name": "GSM RF Jamming",
-                "status": False
-                },
-            14: {   
+                "status": False,
+            },
+            14: {
                 "machine_label": "gsmnoservice",
                 "name": "GSM No Service",
-                "status": False
-                },
-            15: {   
+                "status": False,
+            },
+            15: {
                 "machine_label": "gsmsupervisionlost",
                 "name": "GSM Supervision Lost",
-                "status": False
-                },
-            16: {   
+                "status": False,
+            },
+            16: {
                 "machine_label": "failuretocommunicateipreceiver1gprs",
                 "name": "Failure to Communicate IP preceiver #1 (GPRS)",
-                "status": False
-                },
-            17: {   
+                "status": False,
+            },
+            17: {
                 "machine_label": "failuretocommunicateipreceiver2gprs",
                 "name": "Failure to Communicate IP preceiver #2 (GPRS)",
-                "status": False
-                },
-            18: {   
+                "status": False,
+            },
+            18: {
                 "machine_label": "ipmodulenoservice",
                 "name": "IP Module No Service",
-                "status": False
-                },
-            19: {   
-                "machine_label":"ipmodulesupervisionlost",
+                "status": False,
+            },
+            19: {
+                "machine_label": "ipmodulesupervisionlost",
                 "name": "IP Module Supervision Lost",
-                "status": False
-                },
-            20: {   
+                "status": False,
+            },
+            20: {
                 "machine_label": "failuretocommunicateipreceiver1ip",
                 "name": "Failure to Communicate IP preceiver #1 (IP)",
-                "status": False
-                },
-            21: {   
+                "status": False,
+            },
+            21: {
                 "machine_label": "failuretocommunicateipreceiver2ip",
                 "name": "Failure to Communicate IP preceiver #2 (IP)",
-                "status": False
-                },
-            99: {   
+                "status": False,
+            },
+            99: {
                 "machine_label": "anynewtroubleevent",
                 "name": "Any New Trouble",
-                "status": False
-                },
+                "status": False,
+            },
         }
 
         # Module Trouble Indicators
@@ -174,28 +162,24 @@ class Paradox:
             0: {
                 "machine_label": "modulecommunicationfault",
                 "name": "Bus / EBus / Wireless module communication fault",
-                "status": False
-                },
+                "status": False,
+            },
             1: {
                 "machine_label": "tampertrouble",
                 "name": "Tamper Trouble",
-                "status": False
-                },
+                "status": False,
+            },
             2: {
                 "machine_label": "powerfailure",
                 "name": "Power Failure",
-                "status": False
-                },
-            3: {  
+                "status": False,
+            },
+            3: {
                 "machine_label": "batteryfailure",
                 "name": "Battery Failure",
-                "status": False
-                },
-            99: {   
-                "machine_label": "anytrouble",
-                "name": "Any Trouble",
-                "status": False
-                }, 
+                "status": False,
+            },
+            99: {"machine_label": "anytrouble", "name": "Any Trouble", "status": False},
         }
 
         # Low Nibble Data
@@ -281,14 +265,24 @@ class Paradox:
 
         logger.debug("Initialised Paradox class.")
 
-    def mqtt_connect(self, host="localhost", port=1883, username = None, password = None, keepalive=60, bind_address=""):
+    def mqtt_connect(
+        self,
+        host="localhost",
+        port=1883,
+        username=None,
+        password=None,
+        keepalive=60,
+        bind_address="",
+    ):
         logger.info("Connecting to mqtt.")
-        if username != None and password !=None:
+        if username != None and password != None:
             self.mqtt.username_pw_set(username=username, password=password)
         self.mqtt.connect(host, port, keepalive, bind_address)
         self.mqtt.loop_start()
         self.mqtt.subscribe(
-            "{}/{}/{}/{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, "+", "+", "set", "#")
+            "{}/{}/{}/{}/{}/{}".format(
+                HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, "+", "+", "set", "#"
+            )
         )
         logger.info("Connected to mqtt.")
 
@@ -349,7 +343,11 @@ class Paradox:
                 if value in ["ARM", "STAY", "SLEEP", "DISARM"]:
                     self.control_alarm(partition_number=partition_number, state=value)
                 else:
-                    logger.error("amrstate value {} is invalid. Should be ARM/STAY/SLEEP.".format(value))
+                    logger.error(
+                        "amrstate value {} is invalid. Should be ARM/STAY/SLEEP.".format(
+                            value
+                        )
+                    )
         elif property in ["armed"]:
             value = self.homie_message_true_false(str(message.payload.decode("utf-8")))
             if value == None:
@@ -730,11 +728,13 @@ class Paradox:
         )
 
     def homie_init_trouble_indicators(self):
-        trouble_properties  = ','.join(self.trouble_indicators[t]['machine_label'] for t in self.trouble_indicators)
+        trouble_properties = ",".join(
+            self.trouble_indicators[t]["machine_label"] for t in self.trouble_indicators
+        )
         self.homie_init_node(
             node_id="troubleindicators",
             name="Trouble Indicators",
-            properties=trouble_properties
+            properties=trouble_properties,
         )
         for t in self.trouble_indicators:
             self.homie_init_property(
@@ -744,12 +744,15 @@ class Paradox:
                 datatype="boolean",
             )
 
-    def homie_init_module_trouble_indicators(self):   
-        trouble_properties  = ','.join(self.module_trouble_indicators[t]['machine_label'] for t in self.module_trouble_indicators)
+    def homie_init_module_trouble_indicators(self):
+        trouble_properties = ",".join(
+            self.module_trouble_indicators[t]["machine_label"]
+            for t in self.module_trouble_indicators
+        )
         self.homie_init_node(
             node_id="moduletroubleindicators",
             name="Module Trouble Indicators",
-            properties=trouble_properties
+            properties=trouble_properties,
         )
         for t in self.module_trouble_indicators:
             self.homie_init_property(
@@ -883,21 +886,21 @@ class Paradox:
 
     def homie_publish_trouble_indicators(self):
         for t in self.trouble_indicators:
-                self.homie_publish_property(
-                    node_id="troubleindicators",
-                    property_id=self.trouble_indicators[t]["machine_label"],
-                    datatype="boolean",
-                    value=self.trouble_indicators[t]["status"],
-                )
+            self.homie_publish_property(
+                node_id="troubleindicators",
+                property_id=self.trouble_indicators[t]["machine_label"],
+                datatype="boolean",
+                value=self.trouble_indicators[t]["status"],
+            )
 
     def homie_publish_module_trouble_indicators(self):
         for t in self.module_trouble_indicators:
-                self.homie_publish_property(
-                    node_id="moduletroubleindicators",
-                    property_id=self.module_trouble_indicators[t]["machine_label"],
-                    datatype="boolean",
-                    value=self.module_trouble_indicators[t]["status"],
-                )
+            self.homie_publish_property(
+                node_id="moduletroubleindicators",
+                property_id=self.module_trouble_indicators[t]["machine_label"],
+                datatype="boolean",
+                value=self.module_trouble_indicators[t]["status"],
+            )
 
     def homie_init_partitions(self):
         for i in range(1, 2 + 1):
@@ -936,7 +939,6 @@ class Paradox:
                 datatype="string",
                 settable=True,
             )
-
 
     def homie_publish_partitions(self):
         for i in range(1, 2 + 1):
@@ -1433,11 +1435,15 @@ class Paradox:
                 self.trouble_indicators[trouble_number]["status"] = flag
                 if flag:
                     logger.info(
-                        'Trouble {:d},"{}", {}.'.format(trouble_number, machine_label, "status")
+                        'Trouble {:d},"{}", {}.'.format(
+                            trouble_number, machine_label, "status"
+                        )
                     )
                 else:
                     logger.info(
-                        'Trouble {:d},"{}", Not {}.'.format(trouble_number, machine_label, "status")
+                        'Trouble {:d},"{}", Not {}.'.format(
+                            trouble_number, machine_label, "status"
+                        )
                     )
                 self.homie_publish_property(
                     node_id="troubleindicators",
@@ -1453,16 +1459,22 @@ class Paradox:
             if (
                 self.module_trouble_indicators[trouble_number]["status"] == None
                 or self.module_trouble_indicators[trouble_number]["status"] != flag
-            ):   
-                machine_label = self.module_trouble_indicators[trouble_number]["machine_label"]
+            ):
+                machine_label = self.module_trouble_indicators[trouble_number][
+                    "machine_label"
+                ]
                 self.module_trouble_indicators[trouble_number]["status"] = flag
                 if flag:
                     logger.info(
-                        'Module Trouble {:d},"{}", {}.'.format(trouble_number, machine_label, "status")
+                        'Module Trouble {:d},"{}", {}.'.format(
+                            trouble_number, machine_label, "status"
+                        )
                     )
                 else:
                     logger.info(
-                        'Module Trouble {:d},"{}", Not {}.'.format(trouble_number, machine_label, "status")
+                        'Module Trouble {:d},"{}", Not {}.'.format(
+                            trouble_number, machine_label, "status"
+                        )
                     )
                 self.homie_publish_property(
                     node_id="moduletroubleindicators",
@@ -1839,7 +1851,9 @@ class Paradox:
                     partition_number=partition_number, property="armstate", value=0
                 )
                 self.update_partition_property(
-                    partition_number=partition_number, property="armstatetext", value="DISARM"
+                    partition_number=partition_number,
+                    property="armstatetext",
+                    value="DISARM",
                 )
 
                 self.update_partition_property(
@@ -1906,9 +1920,7 @@ class Paradox:
                 subevent_number, property="tamper", flag=event_number == 42
             )
         elif event_number in (44, 45):  # Trouble
-            self.update_trouble_indicator(
-                subevent_number, flag=event_number == 44
-            )
+            self.update_trouble_indicator(subevent_number, flag=event_number == 44)
         elif event_number in (46, 47):  # Trouble
             self.update_module_trouble_indicator(
                 subevent_number, flag=event_number == 46
