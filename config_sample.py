@@ -31,14 +31,3 @@ import logging
 # MQTT user and password below only set if used
 # MQTT_USERNAME = "user"
 # MQTT_PASSWORD = "password"
-
-# MQTT Topics
-# MQTT_PUBLISH_ALL_SECONDS = 60
-# MQTT_BASE_TOPIC='paradox_mqtt'
-# MQTT_ZONE_TOPIC='zones'
-# MQTT_PARTITION_TOPIC='partitions'
-# MQTT_EVENTS_TOPIC='events'
-# MQTT_CONTROL_TOPIC='control'
-# MQTT_OUTPUT_TOPIC='outputs'
-# MQTT_STATES_TOPIC='states'
-# MQTT_RAW_TOPIC='raw'
