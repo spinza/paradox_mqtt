@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from bits import test_bit, split_high_low_nibble
 from math import floor
 import paho.mqtt.client as mqtt
+import json
 
 from config_defaults import *
 from config import *
@@ -210,6 +211,7 @@ class Paradox:
             partition["armed"] = None
             partition["armstate"] = None
             partition["armstatetext"] = None
+            partition["armstatehass"] = None
             self.partition_data.append(partition)
 
         # Bell on?
@@ -377,6 +379,31 @@ class Paradox:
                 else:
                     logger.error(
                         "amrstate value {} is invalid. Should be ARM/STAY/SLEEP.".format(
+                            value
+                        )
+                    )
+        elif property in ["armstatehass"]:
+            value = str(message.payload.decode("utf-8"))
+            if value == None:
+                logger.error(
+                    "Invalid message body. Should be disarmed/armed_home/armed_night/armed_away. {}".format(
+                        str(message.payload.decode("utf-8"))
+                    )
+                )
+            else:
+                if value == "armed_away":
+                    self.control_alarm(partition_number=partition_number, state="ARM")
+                elif value == "armed_home":
+                    self.control_alarm(partition_number=partition_number, state="STAY")
+                elif value == "armed_night":
+                    self.control_alarm(partition_number=partition_number, state="SLEEP")
+                elif value == "disarmed":
+                    self.control_alarm(
+                        partition_number=partition_number, state="DISARM"
+                    )
+                else:
+                    logger.error(
+                        "amrstatehass value {} is invalid. Should be disarmed/armed_home/armed_night/armed_away.".format(
                             value
                         )
                     )
@@ -597,6 +624,151 @@ class Paradox:
                 message = value
             self.homie_publish(topic, message)
 
+    def get_hass_config_template(self):
+        topic = "{}/{}/{}".format(HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, "$state")
+        config_template = {
+            "availability": {
+                "topic": topic,
+                "payload_available": "ready",
+                "payload_not_available": "lost",
+            },
+            "availability_mode": "latest",
+            "device": {
+                "identifiers": [HASS_DEVICE_ID],
+                "model": "Paradox MG5050",
+                "name": "Paradox MG5050",
+                "sw_version": self.firmwareversion,
+            },
+        }
+        return config_template
+
+    def hass_init_config(
+        self,
+        node_id,
+        property_id,
+        name,
+        datatype,
+        format=None,
+        settable=False,
+        retained=True,
+        unit=None,
+    ):
+        config = self.get_hass_config_template()
+
+        component = "Unknown"
+        unique_id = HOMIE_DEVICE_ID + "_" + node_id + "_" + property_id
+        config["name"] = name
+        config["object_id"] = unique_id
+        config["state_topic"] = "{}/{}/{}/{}".format(
+            HOMIE_BASE_TOPIC,
+            HOMIE_DEVICE_ID,
+            node_id,
+            property_id,
+        )
+        command_topic = "{}/{}/{}/{}/{}".format(
+            HOMIE_BASE_TOPIC,
+            HOMIE_DEVICE_ID,
+            node_id,
+            property_id,
+            "set",
+        )
+        config["unique_id"] = unique_id
+        if datatype == "boolean":
+            config["payload_off"] = "false"
+            config["payload_on"] = "true"
+            if settable:
+                component = "switch"
+                config["optimistic"] = False
+                config["command_topic"] = command_topic
+            else:
+                component = "binary_sensor"
+        elif datatype in ("float", "integer"):
+            if unit != None:
+                config["unit_of_measurement"] = unit
+            if settable:
+                component = "number"
+                config["optimistic"] = False
+                config["command_topic"] = command_topic
+                if format != None:
+                    config["min"], config["max"] = format.split(":")
+            else:
+                component = "sensor"
+        elif datatype == "string":
+            if settable:
+                component = "text"
+                config["optimistic"] = False
+                config["command_topic"] = command_topic
+            else:
+                component = "sensor"
+        elif datatype == "enum":
+            options = format.split(",")
+            if len(options) == 2 and "On" in options and "Off" in options:
+                config["payload_off"] = "Off"
+                config["payload_on"] = "On"
+                if settable:
+                    component = "switch"
+                    config["optimistic"] = False
+                    config["command_topic"] = command_topic
+                else:
+                    component = "binary_sensor"
+            else:
+                if settable:
+                    component = "select"
+                    config["optimistic"] = False
+                    config["command_topic"] = command_topic
+                    config["options"] = format.split(",")
+                else:
+                    component = "sensor"
+        else:
+            logger.error(
+                "Could not represent property {} of node {} for {}.".format(
+                    property_id, node_id, self.label
+                )
+            )
+
+        topic = "{}/{}/{}/{}".format(
+            HASS_BASE_TOPIC,
+            component,
+            unique_id,
+            "config",
+        )
+        config_serialised = json.dumps(config)
+        if component != "Unknown":
+            self.homie_publish(topic, config_serialised)
+        else:
+            logger.error("Unknown component")
+
+    def hass_init_alarmcontrolpanel_config(self, partition=1):
+        config = self.get_hass_config_template()
+        config["state_topic"] = "{}/{}/{}/{}".format(
+            HOMIE_BASE_TOPIC,
+            HOMIE_DEVICE_ID,
+            "partition" + str(partition),
+            "armstatehass",
+        )
+        config["command_topic"] = "{}/{}/{}/{}/{}".format(
+            HOMIE_BASE_TOPIC,
+            HOMIE_DEVICE_ID,
+            "partition" + str(partition),
+            "armstatehass",
+            "set",
+        )
+        config["name"] = "Alarm Partition " + str(partition)
+        config["object_id"] = "alarm_partition" + str(partition)
+        config["payload_arm_away"] = "armed_away"
+        config["payload_arm_night"] = "armed_night"
+        config["payload_arm_home"] = "armed_home"
+        config["payload_disarm"] = "disarmed"
+        config["unique_id"] = "alarmpartition" + str(partition)
+        topic = "{}/{}/{}/{}".format(
+            HASS_BASE_TOPIC,
+            "alarm_control_panel",
+            config["unique_id"],
+            "config",
+        )
+        config_serialised = json.dumps(config)
+        self.homie_publish(topic, config_serialised)
+
     def homie_init_property(
         self,
         node_id,
@@ -634,6 +806,10 @@ class Paradox:
                 HOMIE_BASE_TOPIC, HOMIE_DEVICE_ID, node_id, property_id, "$unit"
             )
             self.homie_publish(topic, unit)
+
+        self.hass_init_config(
+            node_id, property_id, name, datatype, format, settable, retained, unit
+        )
 
     def homie_init_panel(self):
         self.homie_init_node(
@@ -944,7 +1120,7 @@ class Paradox:
                 node_id=node_id,
                 name=self.partition_data[i]["label"],
                 type=None,
-                properties="alarm,armed,armstate,armstatetext",
+                properties="alarm,armed,armstate,armstatetext,armstatehass",
             )
             self.homie_init_property(
                 node_id=node_id,
@@ -974,6 +1150,15 @@ class Paradox:
                 datatype="string",
                 settable=True,
             )
+            self.homie_init_property(
+                node_id=node_id,
+                property_id="armstatehass",
+                name="Arm State Home Assistant",
+                datatype="enum",
+                format="disarmed,armed_home,armed_night,armed_away,triggered",
+                settable=True,
+            )
+            self.hass_init_alarmcontrolpanel_config(partition=i)
 
     def homie_publish_partitions(self):
         for i in range(1, 2 + 1):
@@ -1001,6 +1186,12 @@ class Paradox:
                 property_id="armstatetext",
                 datatype="string",
                 value=self.partition_data[i]["armstatetext"],
+            )
+            self.homie_publish_property(
+                node_id=node_id,
+                property_id="armstatehass",
+                datatype="string",
+                value=self.partition_data[i]["armstatehass"],
             )
 
     def homie_init_outputs(self):
@@ -1383,6 +1574,13 @@ class Paradox:
                         datatype="string",
                         value=value,
                     )
+                elif property in ["armstatehass"]:
+                    self.homie_publish_property(
+                        node_id=self.partition_data[partition_number]["machine_label"],
+                        property_id=property,
+                        datatype="string",
+                        value=value,
+                    )
                 if property == "armstate" and value == 0:
                     self.clear_on_disarm()
 
@@ -1737,6 +1935,11 @@ class Paradox:
                             property="armstatetext",
                             value="STAY",
                         )
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property="armstatehass",
+                            value="armed_home",
+                        )
                     elif arm_sleep:
                         self.update_partition_property(
                             partition_number=partition_number,
@@ -1752,6 +1955,11 @@ class Paradox:
                             partition_number=partition_number,
                             property="armstatetext",
                             value="SLEEP",
+                        )
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property="armstatehass",
+                            value="armed_night",
                         )
                     elif arm:
                         self.update_partition_property(
@@ -1769,6 +1977,11 @@ class Paradox:
                             property="armstatetext",
                             value="ARM",
                         )
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property="armstatehass",
+                            value="armed_away",
+                        )
                     else:
                         self.update_partition_property(
                             partition_number=partition_number,
@@ -1784,6 +1997,11 @@ class Paradox:
                             partition_number=partition_number,
                             property="armstatetext",
                             value="DISARM",
+                        )
+                        self.update_partition_property(
+                            partition_number=partition_number,
+                            property="armstatehass",
+                            value="disarmed",
                         )
 
             elif panel_status == 2:
@@ -1874,6 +2092,11 @@ class Paradox:
                 self.update_partition_property(
                     partition_number=partition_number, property="alarm", value=True
                 )
+                self.update_partition_property(
+                    partition_number=partition_number,
+                    property="armstatehass",
+                    value="triggered",
+                )
             elif subevent_number == 7:  # Alarm stopped
                 self.update_partition_property(
                     partition_number=partition_number, property="alarm", value=False
@@ -1889,6 +2112,11 @@ class Paradox:
                     partition_number=partition_number,
                     property="armstatetext",
                     value="DISARM",
+                )
+                self.update_partition_property(
+                    partition_number=partition_number,
+                    property="armstatehass",
+                    value="disarmed",
                 )
 
                 self.update_partition_property(
@@ -1921,6 +2149,11 @@ class Paradox:
                     property="armstatetext",
                     value="STAY",
                 )
+                self.update_partition_property(
+                    partition_number=partition_number,
+                    property="armstatehass",
+                    value="armed_home",
+                )
 
             elif subevent_number == 4:  # Arm in sleep mode
                 self.update_partition_property(
@@ -1938,6 +2171,12 @@ class Paradox:
                     property="armstatetext",
                     value="SLEEP",
                 )
+                self.update_partition_property(
+                    partition_number=partition_number,
+                    property="armstatehass",
+                    value="armed_night",
+                )
+
         elif event_number == 35:  # Zone bypass
             self.toggle_zone_property(subevent_number, property="bypass")
         elif event_number in (36, 38):  # Zone alarm

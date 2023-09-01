@@ -47,3 +47,6 @@ HOMIE_MQTT_QOS = 1
 HOMIE_MQTT_RETAIN = True
 HOMIE_PUBLISH_ALL_SECONDS = 60
 HOMIE_IMPLEMENTATION = "paradox_mqtt"
+
+# Home Assistant
+HASS_BASE_TOPIC = "homeassistant"

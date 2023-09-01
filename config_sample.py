@@ -31,3 +31,7 @@ import logging
 # MQTT user and password below only set if used
 # MQTT_USERNAME = "user"
 # MQTT_PASSWORD = "password"
+
+# HASS
+# Hass device ID should be unique on your HASS setup
+HASS_DEVICE_ID = "987654321"
