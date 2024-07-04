@@ -37,7 +37,7 @@ import logging
 HASS_DEVICE_ID = "987654321"
 
 # Home Assistant (Code requirements)
-# HASS_ALARM_CODE = "0000"
+# HASS_ALARM_CODE = "0000"  # only set if you are using it
 # HASS_ALARM_CODE_ARM_REQUIRED = False
 # HASS_ALARM_CODE_DISARM_REQUIRED = False
 # HASS_ALARM_CODE_TRIGGER_REQUIRED = False

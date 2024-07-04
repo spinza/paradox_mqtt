@@ -632,18 +632,20 @@ class Paradox:
                 "payload_available": "ready",
                 "payload_not_available": "lost",
             },
-            "code": [HASS_ALARM_CODE],
-            "code_arm_required": [HASS_ALARM_CODE_ARM_REQUIRED],
-            "code_disarm_required": [HASS_ALARM_CODE_DISARM_REQUIRED],
-            "code_trigger_required": [HASS_ALARM_CODE_TRIGGER_REQUIRED],
+            "code_arm_required": HASS_ALARM_CODE_ARM_REQUIRED,
+            "code_disarm_required": HASS_ALARM_CODE_DISARM_REQUIRED,
+            "code_trigger_required": HASS_ALARM_CODE_TRIGGER_REQUIRED,
             "availability_mode": "latest",
             "device": {
-                "identifiers": [HASS_DEVICE_ID],
+                "identifiers": HASS_DEVICE_ID,
                 "model": "Paradox MG5050",
                 "name": "Paradox MG5050",
                 "sw_version": self.firmwareversion,
             },
         }
+        if HASS_ALARM_CODE != None:
+            config_template = config_template | {"code": HASS_ALARM_CODE}
+
         return config_template
 
     def hass_init_config(
