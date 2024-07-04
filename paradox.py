@@ -2372,9 +2372,6 @@ class Paradox:
         if PASSWORD != None:
             logger.info("Logging into to alarm.")
 
-
-
-
         logger.info("Software connecting to alarm.")
         message = b"\x72\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
         reply = self.send_and_process_reply(message)
@@ -2386,7 +2383,13 @@ class Paradox:
         reply = self.send_and_process_reply(message)
 
         # message = reply
-        message = reply[0:10]+reply[8:10]+b'\x19\x00\x00'+reply[15:23] +b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00'
+        message = (
+            reply[0:10]
+            + reply[8:10]
+            + b"\x19\x00\x00"
+            + reply[15:23]
+            + b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\x00"
+        )
         reply = self.send_and_process_reply(message)
 
         message = b"\x50\x00\x1f\xe0\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x4f"

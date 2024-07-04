@@ -16,7 +16,7 @@ CONNECTION_TYPE = "Serial"  # Only serial for now
 SERIAL_PORT = "/dev/ttyUSB0"
 
 # Paradox
-PANEL_ID = '0000'
+PANEL_ID = "0000"
 PASSWORD = None
 KEEP_ALIVE_SECONDS = 9
 ZONES = 32
